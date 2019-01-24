@@ -1,26 +1,26 @@
 import React, { Component } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import ValForm from 'components/ValForm';
+import ValTextField from 'components/ValTextField';
 
 class App extends Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {};
+  }
+
+  handleChange = name => event => {
+    this.setState({
+      [name]: event.target.value,
+    });
+  };
+
   render() {
     return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </header>
-      </div>
+      <ValForm>
+        <ValTextField name={'test1'} value={this.state['test1'] || ''} onChange={this.handleChange('test1')} />
+        <ValTextField name={'test2'} value={this.state['test2'] || ''} onChange={this.handleChange('test2')} />
+      </ValForm>
     );
   }
 }
