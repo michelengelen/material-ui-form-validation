@@ -36,43 +36,54 @@ class ValForm extends Component {
       _errors: {},
       validators,
       registerInput: this.registerInput,
+      mounted: false,
     };
   }
 
   componentDidMount() {
-    console.log('#### onMount ValForm');
     console.log('#### _inputs onMount: ', this._inputs);
+    this.setState({ mounted: true });
   }
 
   isInputRegistered(input) {
     return new Promise((resolve, reject) => {
       for (const key in this._inputs) {
         if (this._inputs.hasOwnProperty(key) && this._inputs[key] === input) {
-          reject(`### input with name '${input.props.name}' already exists.`);
+          resolve(key);
         }
       }
-      resolve(false);
+
+      reject(null);
     });
   }
 
   registerInput(input) {
     const name = validComponent(input);
 
+    console.log('### register input: ', input.props.name);
+
     this.isInputRegistered(input)
-      .then(() => {
-        this._inputs[name] = input;
+      .then(oldName => {
+        this.unregisterInput({ props: { name: oldName } });
       })
-      .catch(error => {
-        throw new Error(error);
+      .catch(() => {})
+      .finally(() => {
+        console.log('### test');
+        this._inputs[name] = input;
       });
   }
 
-  unregisterInput(input) {}
+  unregisterInput(input) {
+    const { name } = validComponent(input);
+    delete this._inputs[name];
+  }
 
   onSubmit(e) {
     if (e && typeof e.preventDefault === 'function') {
       e.preventDefault();
     }
+
+    console.log('#### onSubmit: ', this._inputs);
 
     this.validateAll().then(({ formIsValid, errors }) => {
       console.log('##### validity of inputs: ', formIsValid);
@@ -96,9 +107,17 @@ class ValForm extends Component {
 
   render() {
     console.log('#### _inputs: ', this._inputs);
+    const contextValue = {
+      ...this.state,
+      _inputs: this._inputs,
+    };
+
     return (
-      <ValFormContext.Provider value={this.state}>
-        <form onSubmit={e => this.onSubmit(e)}>{this.props.children}</form>
+      <ValFormContext.Provider value={contextValue}>
+        <form onSubmit={e => this.onSubmit(e)}>
+          {this.props.children}
+          <button type="submit">test</button>
+        </form>
       </ValFormContext.Provider>
     );
   }
