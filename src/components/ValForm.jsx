@@ -32,7 +32,6 @@ class ValForm extends Component {
     this._inputs = {};
 
     this.state = {
-      _inputs: {},
       _values: {},
       _errors: {},
       validators,
@@ -40,29 +39,35 @@ class ValForm extends Component {
     };
   }
 
-  isInputRegistered(input) {
-    for (const key in this._inputs) {
-      if (this._inputs[key] === input) {
-        return true;
-      }
-    }
+  componentDidMount() {
+    console.log('#### onMount ValForm');
+    console.log('#### _inputs onMount: ', this._inputs);
+  }
 
-    return false;
+  isInputRegistered(input) {
+    return new Promise((resolve, reject) => {
+      for (const key in this._inputs) {
+        if (this._inputs.hasOwnProperty(key) && this._inputs[key] === input) {
+          reject(`### input with name '${input.props.name}' already exists.`);
+        }
+      }
+      resolve(false);
+    });
   }
 
   registerInput(input) {
     const name = validComponent(input);
 
-    if (this.isInputRegistered(input)) {
-      throw new Error(`### input with name ${name} already exists.`)
-    }
-
-    this._inputs[name] = input;
+    this.isInputRegistered(input)
+      .then(() => {
+        this._inputs[name] = input;
+      })
+      .catch(error => {
+        throw new Error(error);
+      });
   }
 
-  unregisterInput(input) {
-
-  }
+  unregisterInput(input) {}
 
   onSubmit(e) {
     if (e && typeof e.preventDefault === 'function') {
@@ -77,7 +82,7 @@ class ValForm extends Component {
 
   async validateAll() {
     console.log('#### async step 1');
-    const { formIsValid, errors } = await Object.keys(this.state._inputs).reduce(input => {
+    const { formIsValid, errors } = await Object.keys(this._inputs).reduce(input => {
       console.log('#### async step 2');
       console.log('#### input: ', input);
     });
@@ -90,7 +95,7 @@ class ValForm extends Component {
   }
 
   render() {
-    console.log('### _inputs: ', this._inputs);
+    console.log('#### _inputs: ', this._inputs);
     return (
       <ValFormContext.Provider value={this.state}>
         <form onSubmit={e => this.onSubmit(e)}>{this.props.children}</form>

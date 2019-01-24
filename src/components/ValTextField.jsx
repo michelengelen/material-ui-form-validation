@@ -2,11 +2,12 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import TextField from '@material-ui/core/TextField';
 
+// import the ValFormContext for registering and validation
 import ValFormContext from 'context/ValFormContext';
 
 class ValTextField extends Component {
   componentDidMount() {
-    console.log('##### context: ', this.props.name);
+    console.log('### onMount TextField');
     this.context.registerInput(this);
   }
 
