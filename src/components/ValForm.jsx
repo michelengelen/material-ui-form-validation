@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import isString from 'lodash.isstring';
 import _throttle from 'lodash.throttle';
 
+// import custom stuff
 import ValFormContext from 'context/ValFormContext';
 import validators from './validators';
 
@@ -22,6 +23,10 @@ function validComponent(input) {
 }
 
 class ValForm extends Component {
+  /**
+   * @param   {object}  props
+   * @constructor
+   */
   constructor(props) {
     super(props);
 
@@ -68,8 +73,8 @@ class ValForm extends Component {
   /**
    * register an input in the form-Container to handle all actions regarding them
    *
-   * @param {object}  input
-   * @param {object}  updater
+   * @param   {object}  input
+   * @param   {object}  updater
    */
   registerInput(input, updater = input && input.setState && input.setState.bind(input)) {
     const name = validComponent(input);
@@ -88,7 +93,7 @@ class ValForm extends Component {
   /**
    * unregister an input and its corresponding updater
    *
-   * @param {object}  input
+   * @param   {object}  input
    */
   unregisterInput(input) {
     const { name } = validComponent(input);
@@ -98,8 +103,7 @@ class ValForm extends Component {
 
   /**
    * check if an input requesting to be registered is already registered with another name
-   *
-   * @param {object}  input
+   * @param   {object}  input
    * @returns {Promise<*>}
    */
   isInputRegistered(input) {
@@ -159,7 +163,7 @@ class ValForm extends Component {
 
     let changed = false;
     const currentError = this.hasError(inputName);
-    let _errors = this.state._errors;
+    let _errors = { ...this.state._errors };
 
     if (
       ((_errors[inputName] === undefined && !error) ||
@@ -177,26 +181,25 @@ class ValForm extends Component {
 
     if (!changed) return;
 
-    _errors = { ...this.state._errors };
     this.setState({ _errors }, () => {
       if (update) this.updateInputs();
     });
   }
 
   /**
-   *
+   * set an inputs status to 'dirty' (meaning it had/has a value)
    * @param   {(string | string[])}   inputs
    * @param   {boolean}               [dirty=true]
    * @param   {boolean}               [update=true]
    */
   setDirty(inputs, dirty = true, update = true) {
-    let _dirtyInputs = this.state._dirtyInputs;
+    let _dirtyInputs = { ...this.state._dirtyInputs };
     let changed = false;
-    console.log('#### dirty inputs: ', _dirtyInputs);
-    console.log('#### state dirty inputs: ', this.state._dirtyInputs);
+
     if (!Array.isArray(inputs)) {
       inputs = [inputs];
     }
+
     inputs.forEach(inputName => {
       if (dirty && !_dirtyInputs[inputName]) {
         _dirtyInputs[inputName] = true;
@@ -209,18 +212,25 @@ class ValForm extends Component {
 
     if (!changed) return;
 
-    _dirtyInputs = { ...this.state._dirtyInputs };
     this.setState({ _dirtyInputs }, () => {
       if (update) this.updateInputs();
     });
   }
 
+  /**
+   * set the input status to 'touched' (meaning it was focussed and blurred)
+   * @param inputs
+   * @param touched
+   * @param update
+   */
   setTouched(inputs, touched = true, update = true) {
-    let _touchedInputs = this.state._touchedInputs;
+    let _touchedInputs = { ...this.state._touchedInputs };
     let changed = false;
+
     if (!Array.isArray(inputs)) {
       inputs = [inputs];
     }
+
     inputs.forEach(inputName => {
       if (touched && !_touchedInputs[inputName]) {
         _touchedInputs[inputName] = true;
@@ -233,18 +243,21 @@ class ValForm extends Component {
 
     if (!changed) return;
 
-    _touchedInputs = { ...this.state._touchedInputs };
     this.setState({ _touchedInputs }, () => {
       if (update) this.updateInputs();
     });
   }
 
+  /**
+   * update all inputs
+   */
   updateInputs() {
     if (this.throttledUpdateInputs) {
       this.throttledUpdateInputs();
       return;
     }
-    // this is just until a more intelligent way to determine which inputs need updated is implemented in v3
+
+    // this is just until a more intelligent way to determine which inputs need updated is implemented
     this.throttledUpdateInputs = _throttle(() => {
       Object.keys(this._updater).forEach(
         inputName =>
@@ -253,6 +266,7 @@ class ValForm extends Component {
           this._updater[inputName].call(this._inputs[inputName], {}),
       );
     }, 250);
+
     this.updateInputs();
   }
 
@@ -260,8 +274,6 @@ class ValForm extends Component {
     if (e && typeof e.preventDefault === 'function') {
       e.preventDefault();
     }
-
-    console.log('#### onSubmit: ', this._inputs);
 
     this.validateAll().then(({ formIsValid, errors }) => {
       console.log('##### validity of inputs: ', formIsValid);
@@ -292,7 +304,6 @@ class ValForm extends Component {
       <ValFormContext.Provider value={contextValue}>
         <form onSubmit={e => this.onSubmit(e)}>
           {this.props.children}
-          <button type="submit">test</button>
         </form>
       </ValFormContext.Provider>
     );

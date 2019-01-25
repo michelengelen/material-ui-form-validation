@@ -21,6 +21,7 @@ class App extends Component {
       <ValForm>
         <ValTextField name={'test1'} value={this.state['test1'] || ''} onChange={this.handleChange('test1')} />
         <ValTextField name={'test2'} value={this.state['test2'] || ''} onChange={this.handleChange('test2')} />
+        <button type="submit">test submit</button>
       </ValForm>
     );
   }
