@@ -6,15 +6,48 @@ import TextField from '@material-ui/core/TextField';
 import ValFormContext from 'context/ValFormContext';
 
 class ValTextField extends Component {
+  constructor(props) {
+    super(props);
+
+    this.handleOnBlur = this.handleOnBlur.bind(this);
+    this.handleOnChange = this.handleOnChange.bind(this);
+  }
+
   componentDidMount() {
-    console.log('### onMount TextField');
     this.context.registerInput(this);
   }
 
-  render() {
-    const { value, onChange, ...other } = this.props;
+  handleOnChange(e) {
+    if (e && e.preventDefault && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+    }
 
-    return <TextField value={value} onChange={onChange} {...other} />;
+    const { name } = this.props;
+    if (!this.context.isDirty(name)) this.context.setDirty(name);
+    if (!this.context.isTouched(name)) this.context.setTouched(name);
+    this.props.onChange(e);
+  }
+
+  handleOnBlur(e) {
+    if (e && e.preventDefault && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+    }
+
+    const { name } = this.props;
+    if (!this.context.isTouched(name)) this.context.setTouched(name);
+  }
+
+  render() {
+    const { value, ...other } = this.props;
+
+    return (
+      <TextField
+        value={value}
+        {...other}
+        onChange={e => this.handleOnChange(e)}
+        onBlur={e => this.handleOnBlur(e)}
+      />
+    );
   }
 }
 

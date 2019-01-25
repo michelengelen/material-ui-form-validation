@@ -10,6 +10,7 @@ class App extends Component {
   }
 
   handleChange = name => event => {
+    console.log('#### test onChange', name);
     this.setState({
       [name]: event.target.value,
     });

@@ -1,12 +1,14 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import isString from 'lodash.isstring';
+import _throttle from 'lodash.throttle';
 
 import ValFormContext from 'context/ValFormContext';
 import validators from './validators';
 
 /**
  * check if the input component is valid
- * @param   {class}   input
+ * @param   {object}  input
  * @returns {string}  name
  */
 function validComponent(input) {
@@ -23,28 +25,83 @@ class ValForm extends Component {
   constructor(props) {
     super(props);
 
+    // form submit-handling
     this.onSubmit = this.onSubmit.bind(this);
+
+    // form validation handling
     this.validateAll = this.validateAll.bind(this);
+
+    // input un-/registering and checking
     this.registerInput = this.registerInput.bind(this);
     this.unregisterInput = this.unregisterInput.bind(this);
     this.isInputRegistered = this.isInputRegistered.bind(this);
 
+    // input status management
+    this.isDirty = this.isDirty.bind(this);
+    this.setDirty = this.setDirty.bind(this);
+    this.isTouched = this.isTouched.bind(this);
+    this.setTouched = this.setTouched.bind(this);
+
+    // error status management
+    this.setError = this.setError.bind(this);
+    this.hasError = this.hasError.bind(this);
+
+    // static inputs and corresponding updaters
     this._inputs = {};
+    this._updater = {};
 
     this.state = {
-      _values: {},
+      _dirtyInputs: {},
+      _touchedInputs: {},
       _errors: {},
       validators,
       registerInput: this.registerInput,
-      mounted: false,
+      isDirty: this.isDirty,
+      isTouched: this.isTouched,
+      setDirty: this.setDirty,
+      setTouched: this.setTouched,
     };
   }
 
-  componentDidMount() {
-    console.log('#### _inputs onMount: ', this._inputs);
-    this.setState({ mounted: true });
+  componentDidMount() {}
+
+  /**
+   * register an input in the form-Container to handle all actions regarding them
+   *
+   * @param {object}  input
+   * @param {object}  updater
+   */
+  registerInput(input, updater = input && input.setState && input.setState.bind(input)) {
+    const name = validComponent(input);
+
+    this.isInputRegistered(input)
+      .then(oldName => {
+        this.unregisterInput({ props: { name: oldName } });
+      })
+      .catch(() => {})
+      .finally(() => {
+        this._inputs[name] = input;
+        this._updater[name] = updater;
+      });
   }
 
+  /**
+   * unregister an input and its corresponding updater
+   *
+   * @param {object}  input
+   */
+  unregisterInput(input) {
+    const { name } = validComponent(input);
+    delete this._inputs[name];
+    delete this._updater[name];
+  }
+
+  /**
+   * check if an input requesting to be registered is already registered with another name
+   *
+   * @param {object}  input
+   * @returns {Promise<*>}
+   */
   isInputRegistered(input) {
     return new Promise((resolve, reject) => {
       for (const key in this._inputs) {
@@ -57,25 +114,146 @@ class ValForm extends Component {
     });
   }
 
-  registerInput(input) {
-    const name = validComponent(input);
-
-    console.log('### register input: ', input.props.name);
-
-    this.isInputRegistered(input)
-      .then(oldName => {
-        this.unregisterInput({ props: { name: oldName } });
-      })
-      .catch(() => {})
-      .finally(() => {
-        console.log('### test');
-        this._inputs[name] = input;
-      });
+  /**
+   * check if the input with the given name has an error
+   * @param   {string}  inputName
+   * @returns {boolean}
+   */
+  hasError(inputName) {
+    return inputName ? !!this.state._errors[inputName] : Object.keys(this.state._errors).length > 0;
   }
 
-  unregisterInput(input) {
-    const { name } = validComponent(input);
-    delete this._inputs[name];
+  /**
+   * check if the input with the given name is dirty
+   * @param   {string}  inputName
+   * @returns {boolean}
+   */
+  isDirty(inputName) {
+    return inputName
+      ? !!this.state._dirtyInputs[inputName]
+      : Object.keys(this.state._dirtyInputs).length > 0;
+  }
+
+  /**
+   * check if the input with the given name was touched before
+   * @param   {string}  inputName
+   * @returns {boolean}
+   */
+  isTouched(inputName) {
+    return inputName
+      ? !!this.state._touchedInputs[inputName]
+      : Object.keys(this.state._touchedInputs).length > 0;
+  }
+
+  /**
+   * set an error to the input with the given errorText
+   * @param   {string}              inputName
+   * @param   {(boolean | string)}  [error=true]
+   * @param   {(boolean | string)}  [errorText=error]
+   * @param   {boolean}             [update=true]
+   */
+  setError(inputName, error = true, errorText = error, update = true) {
+    if (error && !isString(errorText) && typeof errorText !== 'boolean') {
+      errorText = errorText + '';
+    }
+
+    let changed = false;
+    const currentError = this.hasError(inputName);
+    let _errors = this.state._errors;
+
+    if (
+      ((_errors[inputName] === undefined && !error) ||
+        _errors[inputName] === (errorText || true)) &&
+      error === currentError
+    )
+      return;
+    if (error) {
+      _errors[inputName] = errorText || true;
+      changed = true;
+    } else {
+      delete _errors[inputName];
+      changed = true;
+    }
+
+    if (!changed) return;
+
+    _errors = { ...this.state._errors };
+    this.setState({ _errors }, () => {
+      if (update) this.updateInputs();
+    });
+  }
+
+  /**
+   *
+   * @param   {(string | string[])}   inputs
+   * @param   {boolean}               [dirty=true]
+   * @param   {boolean}               [update=true]
+   */
+  setDirty(inputs, dirty = true, update = true) {
+    let _dirtyInputs = this.state._dirtyInputs;
+    let changed = false;
+    console.log('#### dirty inputs: ', _dirtyInputs);
+    console.log('#### state dirty inputs: ', this.state._dirtyInputs);
+    if (!Array.isArray(inputs)) {
+      inputs = [inputs];
+    }
+    inputs.forEach(inputName => {
+      if (dirty && !_dirtyInputs[inputName]) {
+        _dirtyInputs[inputName] = true;
+        changed = true;
+      } else if (!dirty && _dirtyInputs[inputName]) {
+        delete _dirtyInputs[inputName];
+        changed = true;
+      }
+    });
+
+    if (!changed) return;
+
+    _dirtyInputs = { ...this.state._dirtyInputs };
+    this.setState({ _dirtyInputs }, () => {
+      if (update) this.updateInputs();
+    });
+  }
+
+  setTouched(inputs, touched = true, update = true) {
+    let _touchedInputs = this.state._touchedInputs;
+    let changed = false;
+    if (!Array.isArray(inputs)) {
+      inputs = [inputs];
+    }
+    inputs.forEach(inputName => {
+      if (touched && !_touchedInputs[inputName]) {
+        _touchedInputs[inputName] = true;
+        changed = true;
+      } else if (!touched && _touchedInputs[inputName]) {
+        delete _touchedInputs[inputName];
+        changed = true;
+      }
+    });
+
+    if (!changed) return;
+
+    _touchedInputs = { ...this.state._touchedInputs };
+    this.setState({ _touchedInputs }, () => {
+      if (update) this.updateInputs();
+    });
+  }
+
+  updateInputs() {
+    if (this.throttledUpdateInputs) {
+      this.throttledUpdateInputs();
+      return;
+    }
+    // this is just until a more intelligent way to determine which inputs need updated is implemented in v3
+    this.throttledUpdateInputs = _throttle(() => {
+      Object.keys(this._updater).forEach(
+        inputName =>
+          this._updater[inputName] &&
+          this._inputs[inputName] &&
+          this._updater[inputName].call(this._inputs[inputName], {}),
+      );
+    }, 250);
+    this.updateInputs();
   }
 
   onSubmit(e) {
@@ -106,10 +284,8 @@ class ValForm extends Component {
   }
 
   render() {
-    console.log('#### _inputs: ', this._inputs);
     const contextValue = {
       ...this.state,
-      _inputs: this._inputs,
     };
 
     return (
