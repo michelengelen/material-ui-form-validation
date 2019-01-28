@@ -31,7 +31,7 @@ class App extends Component {
           value={this.state['test1'] || ''}
           type={'text'}
           onChange={this.handleChange('test1')}
-          errormessage="TEST ERRMSG"
+          errorMessage="TEST ERRMSG"
           helperText="helper text"
           validate={{
             required: {
@@ -42,10 +42,7 @@ class App extends Component {
               value: 2,
               errorMessage: 'minLength errorMessage'
             },
-            email: {
-              value: true,
-              errorMessage: 'email errorMessage'
-            }
+            email: true,
           }}
         />
         <ValTextField

@@ -579,6 +579,8 @@ class ValForm extends Component {
       ...this.state,
     };
 
+    console.log('#### inupts: ', this._inputs);
+
     return (
       <ValFormContext.Provider value={contextValue}>
         <form onSubmit={e => this.onSubmit(e)}>{this.props.children}</form>
