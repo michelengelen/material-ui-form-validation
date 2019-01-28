@@ -5,7 +5,6 @@ const ValFormContext = React.createContext({
   _values: {},
   _errors: {},
   validators: {},
-  setValue: () => {},
   getValue: () => {},
   registerInput: () => {},
 });

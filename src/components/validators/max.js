@@ -1,5 +1,5 @@
 import moment from 'moment';
-import toNumber from 'lodash/toNumber';
+import toNumber from 'lodash.tonumber';
 import { isEmpty, isoDateFormat } from './utils';
 import maxchecked from './maxchecked';
 

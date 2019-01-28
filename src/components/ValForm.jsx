@@ -16,7 +16,7 @@ import validators from './validators';
  * @param   {object}  input
  * @returns {string}  name
  */
-function validComponent(input) {
+const validComponent = input => {
   const name = input && input.props ? input.props.name : undefined;
 
   if (!name) {
@@ -24,7 +24,23 @@ function validComponent(input) {
   }
 
   return name;
-}
+};
+
+/**
+ * get the error-message from the input
+ * @param   {object}  input
+ * @param   {string}  ruleName
+ * @returns {*}
+ */
+const getInputErrorMessage = (input, ruleName) => {
+  const errorMessage = input && input.props && input.props.errorMessage;
+
+  if (typeof errorMessage === 'object') {
+    return errorMessage[ruleName];
+  }
+
+  return errorMessage;
+};
 
 class ValForm extends Component {
   /**
@@ -98,7 +114,10 @@ class ValForm extends Component {
         this._updater[name] = updater;
 
         if (typeof input.validations === 'object') {
-          this._validators[input.props.name] = this.compileValidationRules(input, input.validations);
+          this._validators[input.props.name] = this.compileValidationRules(
+            input,
+            input.validations,
+          );
         }
       });
   }
@@ -263,7 +282,7 @@ class ValForm extends Component {
 
   /**
    *
-   * @param   {string}  input
+   * @param   {object}  input
    * @param   {object}  ruleProp
    * @returns {Function}
    */
@@ -282,23 +301,23 @@ class ValForm extends Component {
           let ruleResult;
 
           const promise = new Promise((resolve, reject) => {
-            const callback = value => resolve({value, rule});
+            const callback = value => resolve({ value, rule });
 
             if (typeof ruleProp[rule] === 'function') {
               ruleResult = ruleProp[rule](val, context, input, callback);
             } else {
-              if (typeof AvValidator[rule] !== 'function') {
+              if (typeof validators[rule] !== 'function') {
                 return reject(new Error(`Invalid input validation rule: "${rule}"`));
               }
 
               if (ruleProp[rule].enabled === false) {
                 ruleResult = true;
               } else {
-                ruleResult = AvValidator[rule](val, context, ruleProp[rule], input, callback);
+                ruleResult = validators[rule](val, context, ruleProp[rule], input, callback);
               }
             }
 
-            if (ruleResult && typeof ruleResult.then === 'function'){
+            if (ruleResult && typeof ruleResult.then === 'function') {
               ruleResult.then(callback);
             } else if (ruleResult !== undefined) {
               callback(ruleResult);
@@ -311,17 +330,18 @@ class ValForm extends Component {
         }
       }
 
-      await Promise.all(validations)
-        .then(results => {
-          results.every(ruleResult => {
-            if (result === true && ruleResult.value !== true) {
-              result = isString(ruleResult.value) && ruleResult.value ||
-                getInputErrorMessage(input, ruleResult.rule) ||
-                getInputErrorMessage(this, ruleResult.rule) || false;
-            }
-            return result === true;
-          });
+      await Promise.all(validations).then(results => {
+        results.every(ruleResult => {
+          if (result === true && ruleResult.value !== true) {
+            result =
+              (isString(ruleResult.value) && ruleResult.value) ||
+              getInputErrorMessage(input, ruleResult.rule) ||
+              getInputErrorMessage(this, ruleResult.rule) ||
+              false;
+          }
+          return result === true;
         });
+      });
 
       return result;
     };
@@ -464,20 +484,6 @@ class ValForm extends Component {
     });
   }
 
-  async validateAll() {
-    console.log('#### async step 1');
-    const { formIsValid, errors } = await Object.keys(this._inputs).reduce(input => {
-      console.log('#### async step 2');
-      console.log('#### input: ', input);
-    });
-    console.log('#### async step 3');
-
-    return {
-      formIsValid,
-      errors,
-    };
-  }
-
   render() {
     const contextValue = {
       ...this.state,
@@ -485,9 +491,7 @@ class ValForm extends Component {
 
     return (
       <ValFormContext.Provider value={contextValue}>
-        <form onSubmit={e => this.onSubmit(e)}>
-          {this.props.children}
-        </form>
+        <form onSubmit={e => this.onSubmit(e)}>{this.props.children}</form>
       </ValFormContext.Provider>
     );
   }
