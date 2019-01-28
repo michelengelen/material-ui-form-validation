@@ -76,8 +76,9 @@ class ValForm extends Component {
     this.setTouched = this.setTouched.bind(this);
 
     // error status management
-    this.setError = this.setError.bind(this);
     this.hasError = this.hasError.bind(this);
+    this.setError = this.setError.bind(this);
+    this.getError = this.getError.bind(this);
 
     // static input storage and corresponding updaters
     this._inputs = {};
@@ -94,6 +95,9 @@ class ValForm extends Component {
       validate: this.validateInput,
       isBad: this.isBad,
       setBad: this.setBad,
+      hasError: this.hasError,
+      setError: this.setError,
+      getError: this.getError,
       isDirty: this.isDirty,
       setDirty: this.setDirty,
       isTouched: this.isTouched,
@@ -101,8 +105,7 @@ class ValForm extends Component {
     };
   }
 
-  componentDidMount() {
-  }
+  componentDidMount() {}
 
   /**
    * register an input in the form-Container to handle all actions regarding them
@@ -331,6 +334,12 @@ class ValForm extends Component {
     });
   }
 
+  getError(inputName) {
+    return isString(this.state._errors[inputName])
+      ? this.state._errors[inputName]
+      : this._inputs[inputName].props.errorMessage || '';
+  }
+
   /**
    * prepare all validation rules for the given input
    * @param   {object}  input
@@ -474,7 +483,6 @@ class ValForm extends Component {
         error = result;
       }
     }
-
 
     this.setError(inputName, !isValid, error, update);
 

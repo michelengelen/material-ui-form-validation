@@ -5,6 +5,12 @@ import isUndefined from 'lodash.isundefined';
 
 // import Material UI component
 import TextField from '@material-ui/core/TextField';
+import FilledInput from '@material-ui/core/FilledInput';
+import FormControl from '@material-ui/core/FormControl';
+import FormHelperText from '@material-ui/core/FormHelperText';
+import Input from '@material-ui/core/Input';
+import InputLabel from '@material-ui/core/InputLabel';
+import OutlinedInput from '@material-ui/core/OutlinedInput';
 
 // import the ValFormContext for registering and validation
 import ValFormContext from 'context/ValFormContext';
@@ -35,6 +41,14 @@ class ValTextField extends Component {
 
     this.validations = {};
     this.value = '';
+
+    this.Tag = Input;
+
+    if (props.filled && props.outlined)
+      throw new Error(`Component ${props.name} can either be outlined or filled, not both`);
+
+    if (props.outlined && !props.filled) this.Tag = OutlinedInput;
+    if (props.filled && !props.outlined) this.Tag = FilledInput;
 
     this.state = { value: this.props.multiple ? [] : '' };
   }
@@ -108,6 +122,7 @@ class ValTextField extends Component {
     const { name } = this.props;
     if (!this.context.isDirty(name)) this.context.setDirty(name);
     if (!this.context.isTouched(name)) this.context.setTouched(name);
+    this.validate();
     this.props.onChange(e);
   }
 
@@ -121,15 +136,30 @@ class ValTextField extends Component {
   }
 
   render() {
-    const { value, ...other } = this.props;
+    const { Tag } = this;
+    const { id, value, name, helperText, ...other } = this.props;
+
+    const errorMessage = this.context.hasError(name) ? this.context.getError(name) : null;
+    const formHelperText = errorMessage || helperText || null;
+
+    const ariaHelper = `input_${name}`;
+
+    console.log('### errorMessage: ', errorMessage);
 
     return (
-      <TextField
-        value={value}
-        {...other}
-        onChange={e => this.handleOnChange(e)}
-        onBlur={e => this.handleOnBlur(e)}
-      />
+      <FormControl error={!!errorMessage}>
+        <InputLabel htmlFor={id || ariaHelper} />
+        <Tag
+          value={value}
+          id={id || ariaHelper}
+          name={name}
+          {...other}
+          aria-describedby={ariaHelper + '-helperText'}
+          onChange={e => this.handleOnChange(e)}
+          onBlur={e => this.handleOnBlur(e)}
+        />
+        {formHelperText && <FormHelperText id={ariaHelper + '-helperText'}>{formHelperText}</FormHelperText>}
+      </FormControl>
     );
   }
 }
