@@ -21,13 +21,14 @@ function asRegExp(pattern) {
 /**
  * Test the given value with the provided pattern(s)
  *
- * @param {string}              value
- * @param {object}              [requirement]
- * @param {string}              [requirement.errorMessage]
- * @param {string[] | RegExp[]} [requirement.value]
+ * @param   {string}                       value
+ * @param   {object}                       context
+ * @param   {object}                       [requirement]
+ * @param   {(string | boolean | RegExp)}  [requirement.errorMessage]
+ * @param   {(string | RegExp)}            [requirement.value]
  * @returns {boolean | string}
  */
-const validate = (value, requirement = {}) => {
+const validate = (value, context, requirement = {}) => {
   if (isEmpty(value)) return true;
 
   const reqValues = Array.isArray(requirement.value) ? requirement.value : [requirement.value];

@@ -1,5 +1,9 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+
+// import lodash helpers
+import _get from 'lodash.get';
+import _set from 'lodash.set';
 import isString from 'lodash.isstring';
 import _throttle from 'lodash.throttle';
 
@@ -41,6 +45,10 @@ class ValForm extends Component {
     this.unregisterInput = this.unregisterInput.bind(this);
     this.isInputRegistered = this.isInputRegistered.bind(this);
 
+    // input value getters
+    this.getValue = this.getValue.bind(this);
+    this.getValues = this.getValues.bind(this);
+
     // input status management
     this.isDirty = this.isDirty.bind(this);
     this.setDirty = this.setDirty.bind(this);
@@ -54,6 +62,7 @@ class ValForm extends Component {
     // static inputs and corresponding updaters
     this._inputs = {};
     this._updater = {};
+    this._validators = {};
 
     this.state = {
       _dirtyInputs: {},
@@ -87,6 +96,10 @@ class ValForm extends Component {
       .finally(() => {
         this._inputs[name] = input;
         this._updater[name] = updater;
+
+        if (typeof input.validations === 'object') {
+          this._validators[input.props.name] = this.compileValidationRules(input, input.validations);
+        }
       });
   }
 
@@ -246,6 +259,176 @@ class ValForm extends Component {
     this.setState({ _touchedInputs }, () => {
       if (update) this.updateInputs();
     });
+  }
+
+  /**
+   *
+   * @param   {string}  input
+   * @param   {object}  ruleProp
+   * @returns {Function}
+   */
+  compileValidationRules(input, ruleProp) {
+    return async (val, context) => {
+      if (this.isBad(input.props.name)) {
+        return false;
+      }
+
+      let result = true;
+      const validations = [];
+
+      for (const rule in ruleProp) {
+        /* istanbul ignore else  */
+        if (ruleProp.hasOwnProperty(rule)) {
+          let ruleResult;
+
+          const promise = new Promise((resolve, reject) => {
+            const callback = value => resolve({value, rule});
+
+            if (typeof ruleProp[rule] === 'function') {
+              ruleResult = ruleProp[rule](val, context, input, callback);
+            } else {
+              if (typeof AvValidator[rule] !== 'function') {
+                return reject(new Error(`Invalid input validation rule: "${rule}"`));
+              }
+
+              if (ruleProp[rule].enabled === false) {
+                ruleResult = true;
+              } else {
+                ruleResult = AvValidator[rule](val, context, ruleProp[rule], input, callback);
+              }
+            }
+
+            if (ruleResult && typeof ruleResult.then === 'function'){
+              ruleResult.then(callback);
+            } else if (ruleResult !== undefined) {
+              callback(ruleResult);
+            } else {
+              // they are using the callback
+            }
+          });
+
+          validations.push(promise);
+        }
+      }
+
+      await Promise.all(validations)
+        .then(results => {
+          results.every(ruleResult => {
+            if (result === true && ruleResult.value !== true) {
+              result = isString(ruleResult.value) && ruleResult.value ||
+                getInputErrorMessage(input, ruleResult.rule) ||
+                getInputErrorMessage(this, ruleResult.rule) || false;
+            }
+            return result === true;
+          });
+        });
+
+      return result;
+    };
+  }
+
+  /**
+   * return the value of a single input
+   * or if several inputs with the same name are stored throw an error
+   * @param   {string}  inputName
+   * @returns {*}
+   */
+  getValue(inputName) {
+    const input = this._inputs[inputName];
+
+    if (!input) return undefined;
+
+    if (Array.isArray(input)) {
+      throw new Error(`Multiple inputs cannot use the same name: "${inputName}"`);
+    }
+
+    return input.getValue();
+  }
+
+  /**
+   * get all values from stored inputs
+   * @returns   {object}  values
+   */
+  getValues() {
+    return Object.keys(this._inputs).reduce((values, inputName) => {
+      _set(values, inputName, this.getValue(inputName));
+
+      return values;
+    }, {});
+  }
+
+  /**
+   * validate the value of a single input
+   * @param   {string}  inputName
+   * @param   {object}  context
+   * @param   {boolean} update
+   * @returns {Promise<boolean>}
+   */
+  async validateOne(inputName, context, update = true) {
+    const input = this._inputs[inputName];
+
+    if (Array.isArray(input)) {
+      throw new Error(`Multiple inputs cannot use the same name: "${inputName}"`);
+    }
+
+    const value = _get(context, inputName);
+    const validate = input.validations;
+    let isValid = true;
+    let result;
+    let error;
+
+    if (typeof validate === 'function') {
+      result = await validate(value, context, input);
+    } else if (typeof validate === 'object') {
+      result = await this._validators[inputName](value, context);
+    } else {
+      result = true;
+    }
+
+    if (result !== true) {
+      isValid = false;
+
+      if (isString(result)) {
+        error = result;
+      }
+    }
+
+    this.setError(inputName, !isValid, error, update);
+
+    return isValid;
+  }
+
+  async validateAll(context, update = true) {
+    const errors = [];
+    let isValid = true;
+
+    for (const inputName in this._inputs) {
+      /* istanbul ignore else  */
+      if (this._inputs.hasOwnProperty(inputName)) {
+        const valid = await this.validateOne(inputName, context, update);
+        if (!valid) {
+          isValid = false;
+          errors.push(inputName);
+        }
+      }
+    }
+
+    if (this.props.validate) {
+      let formLevelValidation = this.props.validate;
+      if (!Array.isArray(formLevelValidation)) {
+        formLevelValidation = [formLevelValidation];
+      }
+
+      if (!formLevelValidation.every(validationFn => validationFn(context))) {
+        isValid = false;
+        errors.push('*');
+      }
+    }
+
+    return {
+      isValid,
+      errors,
+    };
   }
 
   /**
