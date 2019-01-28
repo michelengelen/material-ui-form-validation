@@ -18,9 +18,28 @@ class App extends Component {
 
   render() {
     return (
-      <ValForm>
-        <ValTextField name={'test1'} value={this.state['test1'] || ''} onChange={this.handleChange('test1')} />
-        <ValTextField name={'test2'} value={this.state['test2'] || ''} onChange={this.handleChange('test2')} />
+      <ValForm
+        onValidSubmit={() => {
+          console.log('##### VALID SUBMIT');
+        }}
+        onInvalidSubmit={() => {
+          console.log('##### INVALID SUBMIT');
+        }}
+      >
+        <ValTextField
+          name={'test1'}
+          value={this.state['test1'] || ''}
+          type={'text'}
+          onChange={this.handleChange('test1')}
+          errormessage="TEST ERRMSG"
+          validate={{ required: { value: true, errorMessage: 'custom errMsg' } }}
+        />
+        <ValTextField
+          name={'test2'}
+          value={this.state['test2'] || ''}
+          type={'text'}
+          onChange={this.handleChange('test2')}
+        />
         <button type="submit">test submit</button>
       </ValForm>
     );

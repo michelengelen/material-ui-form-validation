@@ -54,6 +54,8 @@ class ValForm extends Component {
     this.onSubmit = this.onSubmit.bind(this);
 
     // form validation handling
+    this.validateInput = this.validateInput.bind(this);
+    this.validateOne = this.validateOne.bind(this);
     this.validateAll = this.validateAll.bind(this);
 
     // input un-/registering and checking
@@ -66,6 +68,8 @@ class ValForm extends Component {
     this.getValues = this.getValues.bind(this);
 
     // input status management
+    this.isBad = this.isBad.bind(this);
+    this.setBad = this.setBad.bind(this);
     this.isDirty = this.isDirty.bind(this);
     this.setDirty = this.setDirty.bind(this);
     this.isTouched = this.isTouched.bind(this);
@@ -75,25 +79,30 @@ class ValForm extends Component {
     this.setError = this.setError.bind(this);
     this.hasError = this.hasError.bind(this);
 
-    // static inputs and corresponding updaters
+    // static input storage and corresponding updaters
     this._inputs = {};
     this._updater = {};
     this._validators = {};
 
     this.state = {
+      _badInputs: {},
       _dirtyInputs: {},
       _touchedInputs: {},
       _errors: {},
       validators,
       registerInput: this.registerInput,
+      validate: this.validateInput,
+      isBad: this.isBad,
+      setBad: this.setBad,
       isDirty: this.isDirty,
-      isTouched: this.isTouched,
       setDirty: this.setDirty,
+      isTouched: this.isTouched,
       setTouched: this.setTouched,
     };
   }
 
-  componentDidMount() {}
+  componentDidMount() {
+  }
 
   /**
    * register an input in the form-Container to handle all actions regarding them
@@ -182,6 +191,17 @@ class ValForm extends Component {
   }
 
   /**
+   * check if the input with the given name is bad
+   * @param   {string}  inputName
+   * @returns {boolean}
+   */
+  isBad(inputName) {
+    return inputName
+      ? !!this.state._badInputs[inputName]
+      : Object.keys(this.state._badInputs).length > 0;
+  }
+
+  /**
    * set an error to the input with the given errorText
    * @param   {string}              inputName
    * @param   {(boolean | string)}  [error=true]
@@ -219,7 +239,7 @@ class ValForm extends Component {
   }
 
   /**
-   * set an inputs status to 'dirty' (meaning it had/has a value)
+   * set the input(s) status to 'dirty' (meaning it had/has a value)
    * @param   {(string | string[])}   inputs
    * @param   {boolean}               [dirty=true]
    * @param   {boolean}               [update=true]
@@ -250,10 +270,10 @@ class ValForm extends Component {
   }
 
   /**
-   * set the input status to 'touched' (meaning it was focussed and blurred)
-   * @param inputs
-   * @param touched
-   * @param update
+   * set the input(s) status to 'touched' (meaning it was focussed and blurred)
+   * @param   {(string | string[])}   inputs
+   * @param   {boolean}               [touched=true]
+   * @param   {boolean}               [update=true]
    */
   setTouched(inputs, touched = true, update = true) {
     let _touchedInputs = { ...this.state._touchedInputs };
@@ -281,7 +301,38 @@ class ValForm extends Component {
   }
 
   /**
-   *
+   * set the input(s) status to 'touched' (meaning it was focussed and blurred)
+   * @param   {(string | string[])}   inputs
+   * @param   {boolean}               [isBad=true]
+   * @param   {boolean}               [update=true]
+   */
+  setBad(inputs, isBad = true, update = true) {
+    let _badInputs = { ...this.state._badInputs };
+    let changed = false;
+
+    if (!Array.isArray(inputs)) {
+      inputs = [inputs];
+    }
+
+    inputs.forEach(inputName => {
+      if (isBad && !_badInputs[inputName]) {
+        _badInputs[inputName] = true;
+        changed = true;
+      } else if (!isBad && _badInputs[inputName]) {
+        delete _badInputs[inputName];
+        changed = true;
+      }
+    });
+
+    if (!changed) return;
+
+    this.setState({ _badInputs }, () => {
+      if (update) this.updateInputs();
+    });
+  }
+
+  /**
+   * prepare all validation rules for the given input
    * @param   {object}  input
    * @param   {object}  ruleProp
    * @returns {Function}
@@ -378,6 +429,15 @@ class ValForm extends Component {
   }
 
   /**
+   * validate the value of a single input (this method gets passed down to the context)
+   * @param   {string}  inputName
+   * @returns {Promise<void>}
+   */
+  async validateInput(inputName) {
+    await this.validateOne(inputName, this.getValues());
+  }
+
+  /**
    * validate the value of a single input
    * @param   {string}  inputName
    * @param   {object}  context
@@ -386,6 +446,8 @@ class ValForm extends Component {
    */
   async validateOne(inputName, context, update = true) {
     const input = this._inputs[inputName];
+
+    if (!input) return true;
 
     if (Array.isArray(input)) {
       throw new Error(`Multiple inputs cannot use the same name: "${inputName}"`);
@@ -412,6 +474,7 @@ class ValForm extends Component {
         error = result;
       }
     }
+
 
     this.setError(inputName, !isValid, error, update);
 
@@ -473,16 +536,35 @@ class ValForm extends Component {
     this.updateInputs();
   }
 
-  onSubmit(e) {
+  onSubmit = async e => {
     if (e && typeof e.preventDefault === 'function') {
       e.preventDefault();
     }
 
-    this.validateAll().then(({ formIsValid, errors }) => {
-      console.log('##### validity of inputs: ', formIsValid);
-      console.log('##### errors in form: ', errors);
-    });
-  }
+    if (this.props.disabled) {
+      return;
+    }
+
+    const values = this.getValues();
+
+    const { isValid, errors } = await this.validateAll(values, false);
+
+    this.setTouched(Object.keys(this._inputs), true, false);
+
+    this.updateInputs();
+
+    if (this.props.onSubmit && typeof this.props.onSubmit === 'function') {
+      this.props.onSubmit(e, errors, values);
+    }
+
+    if (isValid) {
+      this.props.onValidSubmit(e, values);
+    } else {
+      this.props.onInvalidSubmit(e, errors, values);
+    }
+
+    !this.state.submitted && this.setState({ submitted: true });
+  };
 
   render() {
     const contextValue = {
