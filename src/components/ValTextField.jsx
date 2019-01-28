@@ -2,10 +2,11 @@ import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 
+// import lodash helpers
 import isUndefined from 'lodash.isundefined';
+import cloneDeep from 'lodash.clonedeep';
 
 // import Material UI component
-import TextField from '@material-ui/core/TextField';
 import FilledInput from '@material-ui/core/FilledInput';
 import FormControl from '@material-ui/core/FormControl';
 import FormHelperText from '@material-ui/core/FormHelperText';
@@ -44,6 +45,8 @@ class ValTextField extends Component {
 
     this.renderFormLabel = this.renderFormLabel.bind(this);
     this.renderFormHelperText = this.renderFormHelperText.bind(this);
+    this.getDerivedProps = this.getDerivedProps.bind(this);
+    this.getCustomProps = this.getCustomProps.bind(this);
 
     this.validations = {};
     this.value = '';
@@ -68,23 +71,6 @@ class ValTextField extends Component {
 
   getAriaHelper() {
     return this.props.id || `input_${this.props.name}`;
-  }
-
-  renderFormLabel(label) {
-    return (
-      <InputLabel
-        htmlFor={this.getAriaHelper()}
-        ref={ref => {
-          this.labelRef = ReactDOM.findDOMNode(ref);
-        }}
-      >
-        {label}
-      </InputLabel>
-    );
-  }
-
-  renderFormHelperText(helperText) {
-    return <FormHelperText id={this.getAriaHelper() + '-helperText'}>{helperText}</FormHelperText>;
   }
 
   getValue() {
@@ -168,35 +154,77 @@ class ValTextField extends Component {
   }
 
   getDerivedProps() {
+    const clonedProps = cloneDeep(this.props);
 
+    // delete all props that should not be spread down to the underlying Material UI component
+    delete clonedProps.errorMessage;
+    delete clonedProps.falseValue;
+    delete clonedProps.filled;
+    delete clonedProps.helperText;
+    delete clonedProps.outlined;
+    delete clonedProps.required;
+    delete clonedProps.trueValue;
+    delete clonedProps.valueParser;
+    delete clonedProps.valueFormatter;
+    delete clonedProps.validate;
+  }
+
+  getCustomProps() {
+    const { id, name, helperText, label, outlined, filled, required, errorMessage } = this.props;
+
+    const customProps = {};
+
+    customProps.required = required || this.isRequired(name);
+    customProps.error = this.context.hasError(name);
+
+    const errorText = customProps.error && this.context.getError(name, errorMessage);
+    customProps.formHelperText = errorText || helperText || null;
+
+    customProps.ariaHelper = `input_${name}`;
+    customProps.variant = outlined ? 'outlined' : filled ? 'filled' : null;
+
+    customProps.id = id || customProps.ariaHelper;
+    customProps.label = label;
+
+    if (outlined) {
+      customProps.labelWidth = this.labelRef ? this.labelRef.offsetWidth : 0;
+    }
+
+    return customProps;
+  }
+
+  renderFormLabel(label) {
+    return (
+      <InputLabel
+        htmlFor={this.getAriaHelper()}
+        ref={ref => {
+          this.labelRef = ReactDOM.findDOMNode(ref);
+        }}
+      >
+        {label}
+      </InputLabel>
+    );
+  }
+
+  renderFormHelperText(helperText) {
+    return <FormHelperText id={this.getAriaHelper() + '-helperText'}>{helperText}</FormHelperText>;
   }
 
   render() {
     const { Tag } = this;
-    const { id, value, name, helperText, label, outlined, filled, required, errorMessage, ...other } = this.props;
-
-    const isRequired = required || this.isRequired(name);
-    const hasError = this.context.hasError(name);
-
-    const error = hasError ? this.context.getError(name, errorMessage) : null;
-    const formHelperText = error || helperText || null;
-
-    const ariaHelper = `input_${name}`;
-    const variant = outlined ? 'outlined' : filled ? 'filled' : null;
+    const materialProps = this.getDerivedProps();
+    const customProps = this.getCustomProps();
+    const { label, error, variant, ariaHelper, formHelperText, ...other } = customProps;
 
     return (
-      <FormControl error={hasError} variant={variant}>
+      <FormControl error={error} variant={variant}>
         {label && this.renderFormLabel(label)}
         <Tag
-          value={value}
-          id={id || ariaHelper}
-          name={name}
+          {...materialProps}
           {...other}
-          required={isRequired}
           aria-describedby={ariaHelper + '-helperText'}
           onChange={e => this.handleOnChange(e)}
           onBlur={e => this.handleOnBlur(e)}
-          labelWidth={this.labelRef ? this.labelRef.offsetWidth : 0}
         />
         {formHelperText && this.renderFormHelperText(formHelperText)}
       </FormControl>
@@ -205,22 +233,24 @@ class ValTextField extends Component {
 }
 
 ValTextField.propTypes = {
+  // props that override the Inputs props
   onChange: PropTypes.func.isRequired,
   name: PropTypes.string.isRequired,
-  trueValue: PropTypes.any,
-  falseValue: PropTypes.any,
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  validations: PropTypes.object,
+
+  // custom props for this implementation (these get deleted in getDerivedProps() method)
+  falseValue: PropTypes.any,
+  trueValue: PropTypes.any,
+  validate: PropTypes.object,
   valueParser: PropTypes.func,
   valueFormatter: PropTypes.func,
 };
 
 ValTextField.defaultProps = {
-  disableHTMLvalidate: true,
+  value: '',
   trueValue: true,
   falseValue: false,
-  value: '',
-  validations: {},
+  validate: {},
   valueParser: x => x,
   valueFormatter: x => x,
 };

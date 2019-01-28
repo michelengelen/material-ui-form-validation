@@ -455,7 +455,7 @@ class ValForm extends Component {
    * validate the value of a single input
    * @param   {string}  inputName
    * @param   {object}  context
-   * @param   {boolean} update
+   * @param   {boolean} [update=true]
    * @returns {Promise<boolean>}
    */
   async validateOne(inputName, context, update = true) {
