@@ -10,7 +10,6 @@ class App extends Component {
   }
 
   handleChange = name => event => {
-    console.log('#### test onChange', name);
     this.setState({
       [name]: event.target.value,
     });
@@ -27,29 +26,43 @@ class App extends Component {
         }}
       >
         <ValTextField
+          type="text"
           name={'test1'}
           value={this.state['test1'] || ''}
-          type={'text'}
+          label="Input Test 1"
           onChange={this.handleChange('test1')}
           errorMessage="TEST ERRMSG"
-          helperText="helper text"
+          helperText="helper text 1"
           validate={{
             required: {
-              value: true,
-              errorMessage: 'required errorMessage'
+              value: ['dependent1', 'dependaent2'],
+              errorMessage: 'required errorMessage',
             },
             minLength: {
               value: 2,
-              errorMessage: 'minLength errorMessage'
+              errorMessage: 'minLength errorMessage',
             },
             email: true,
           }}
-        />
+        />{' '}
         <ValTextField
-          name={'test2'}
+          required
+          outlined
+          type="text"
+          name="test2"
+          label="Input Test 2"
+          helperText="helper text 2"
           value={this.state['test2'] || ''}
-          type={'text'}
           onChange={this.handleChange('test2')}
+        />{' '}
+        <ValTextField
+          filled
+          type="text"
+          name="test3"
+          label="Input Test 3"
+          helperText="helper text 3"
+          value={this.state['test3'] || ''}
+          onChange={this.handleChange('test3')}
         />
         <button type="submit">test submit</button>
       </ValForm>

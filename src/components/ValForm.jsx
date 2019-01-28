@@ -207,8 +207,8 @@ class ValForm extends Component {
   /**
    * set an error to the input with the given errorText
    * @param   {string}              inputName
-   * @param   {(boolean | string)}  [error=true]
-   * @param   {(boolean | string)}  [errorText=error]
+   * @param   {(boolean|string)}  [error=true]
+   * @param   {(boolean|string)}  [errorText=error]
    * @param   {boolean}             [update=true]
    */
   setError(inputName, error = true, errorText = error, update = true) {
@@ -243,7 +243,7 @@ class ValForm extends Component {
 
   /**
    * set the input(s) status to 'dirty' (meaning it had/has a value)
-   * @param   {(string | string[])}   inputs
+   * @param   {(string|string[])}   inputs
    * @param   {boolean}               [dirty=true]
    * @param   {boolean}               [update=true]
    */
@@ -274,7 +274,7 @@ class ValForm extends Component {
 
   /**
    * set the input(s) status to 'touched' (meaning it was focussed and blurred)
-   * @param   {(string | string[])}   inputs
+   * @param   {(string|string[])}   inputs
    * @param   {boolean}               [touched=true]
    * @param   {boolean}               [update=true]
    */
@@ -305,7 +305,7 @@ class ValForm extends Component {
 
   /**
    * set the input(s) status to 'touched' (meaning it was focussed and blurred)
-   * @param   {(string | string[])}   inputs
+   * @param   {(string|string[])}   inputs
    * @param   {boolean}               [isBad=true]
    * @param   {boolean}               [update=true]
    */
@@ -334,10 +334,16 @@ class ValForm extends Component {
     });
   }
 
-  getError(inputName) {
+  /**
+   * get the error message set in the validator or in the props of the component
+   * @param   {string}  inputName
+   * @param   {string}  errorMessage
+   * @returns {boolean|string|string|RegExp}
+   */
+  getError(inputName, errorMessage = 'Field is invalid') {
     return isString(this.state._errors[inputName])
-      ? this.state._errors[inputName]
-      : this._inputs[inputName].props.errorMessage || '';
+      ? isString(this.state._errors[inputName]) && this.state._errors[inputName]
+      : errorMessage;
   }
 
   /**
@@ -356,7 +362,6 @@ class ValForm extends Component {
       const validations = [];
 
       for (const rule in ruleProp) {
-        /* istanbul ignore else  */
         if (ruleProp.hasOwnProperty(rule)) {
           let ruleResult;
 
@@ -494,7 +499,6 @@ class ValForm extends Component {
     let isValid = true;
 
     for (const inputName in this._inputs) {
-      /* istanbul ignore else  */
       if (this._inputs.hasOwnProperty(inputName)) {
         const valid = await this.validateOne(inputName, context, update);
         if (!valid) {
@@ -575,15 +579,14 @@ class ValForm extends Component {
   };
 
   render() {
+    const { noValidate, children } = this.props;
     const contextValue = {
       ...this.state,
     };
 
-    console.log('#### inupts: ', this._inputs);
-
     return (
       <ValFormContext.Provider value={contextValue}>
-        <form onSubmit={e => this.onSubmit(e)}>{this.props.children}</form>
+        <form onSubmit={e => this.onSubmit(e)} noValidate={noValidate}>{children}</form>
       </ValFormContext.Provider>
     );
   }
@@ -593,6 +596,11 @@ ValForm.propTypes = {
   children: PropTypes.node,
   onValidSubmit: PropTypes.func,
   onInvalidSubmit: PropTypes.func,
+  noValidate: PropTypes.bool,
+};
+
+ValForm.defaultProps = {
+  noValidate: true,
 };
 
 export default ValForm;

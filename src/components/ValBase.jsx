@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 
 import isUndefined from 'lodash.isundefined';
@@ -34,22 +33,16 @@ class ValTextField extends Component {
 
     this.handleOnBlur = this.handleOnBlur.bind(this);
     this.handleOnChange = this.handleOnChange.bind(this);
-    this.getAriaHelper = this.getAriaHelper.bind(this);
     this.getValue = this.getValue.bind(this);
     this.getViewValue = this.getViewValue.bind(this);
     this.getFieldValue = this.getFieldValue.bind(this);
     this.updateValidations = this.updateValidations.bind(this);
     this.validate = this.validate.bind(this);
-    this.isRequired = this.isRequired.bind(this);
-
-    this.renderFormLabel = this.renderFormLabel.bind(this);
-    this.renderFormHelperText = this.renderFormHelperText.bind(this);
 
     this.validations = {};
     this.value = '';
 
     this.Tag = Input;
-    this.labelRef = null;
 
     if (props.filled && props.outlined)
       throw new Error(`Component ${props.name} can either be outlined or filled, not both`);
@@ -64,27 +57,6 @@ class ValTextField extends Component {
     this.value = this.props.value;
     this.setState({ value: this.value });
     this.updateValidations();
-  }
-
-  getAriaHelper() {
-    return this.props.id || `input_${this.props.name}`;
-  }
-
-  renderFormLabel(label) {
-    return (
-      <InputLabel
-        htmlFor={this.getAriaHelper()}
-        ref={ref => {
-          this.labelRef = ReactDOM.findDOMNode(ref);
-        }}
-      >
-        {label}
-      </InputLabel>
-    );
-  }
-
-  renderFormHelperText(helperText) {
-    return <FormHelperText id={this.getAriaHelper() + '-helperText'}>{helperText}</FormHelperText>;
   }
 
   getValue() {
@@ -111,10 +83,6 @@ class ValTextField extends Component {
       return ret;
     }
     return event && event.target && !isUndefined(event.target.value) ? event.target.value : event;
-  }
-
-  isRequired() {
-    return this.props.required || !!(this.validations.required && this.validations.required.value);
   }
 
   updateValidations(props = this.props) {
@@ -166,42 +134,6 @@ class ValTextField extends Component {
     const { name } = this.props;
     if (!this.context.isTouched(name)) this.context.setTouched(name);
   }
-
-  getDerivedProps() {
-
-  }
-
-  render() {
-    const { Tag } = this;
-    const { id, value, name, helperText, label, outlined, filled, required, errorMessage, ...other } = this.props;
-
-    const isRequired = required || this.isRequired(name);
-    const hasError = this.context.hasError(name);
-
-    const error = hasError ? this.context.getError(name, errorMessage) : null;
-    const formHelperText = error || helperText || null;
-
-    const ariaHelper = `input_${name}`;
-    const variant = outlined ? 'outlined' : filled ? 'filled' : null;
-
-    return (
-      <FormControl error={hasError} variant={variant}>
-        {label && this.renderFormLabel(label)}
-        <Tag
-          value={value}
-          id={id || ariaHelper}
-          name={name}
-          {...other}
-          required={isRequired}
-          aria-describedby={ariaHelper + '-helperText'}
-          onChange={e => this.handleOnChange(e)}
-          onBlur={e => this.handleOnBlur(e)}
-          labelWidth={this.labelRef ? this.labelRef.offsetWidth : 0}
-        />
-        {formHelperText && this.renderFormHelperText(formHelperText)}
-      </FormControl>
-    );
-  }
 }
 
 ValTextField.propTypes = {
@@ -216,7 +148,6 @@ ValTextField.propTypes = {
 };
 
 ValTextField.defaultProps = {
-  disableHTMLvalidate: true,
   trueValue: true,
   falseValue: false,
   value: '',

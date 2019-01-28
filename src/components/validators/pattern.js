@@ -24,9 +24,9 @@ function asRegExp(pattern) {
  * @param   {string}                       value
  * @param   {object}                       context
  * @param   {object}                       [requirement]
- * @param   {(string | boolean | RegExp)}  [requirement.errorMessage]
- * @param   {(string | RegExp)}            [requirement.value]
- * @returns {boolean | string}
+ * @param   {(string|boolean|RegExp)}  [requirement.errorMessage]
+ * @param   {(string|RegExp)}            [requirement.value]
+ * @returns {boolean|string}
  */
 const validate = (value, context, requirement = {}) => {
   if (isEmpty(value)) return true;
