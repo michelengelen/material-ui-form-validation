@@ -26,6 +26,7 @@ class App extends Component {
         }}
       >
         <ValTextField
+          disabled
           type="text"
           name={'test1'}
           value={this.state['test1'] || ''}
@@ -35,7 +36,7 @@ class App extends Component {
           helperText="helper text 1"
           validate={{
             required: {
-              value: ['dependent1', 'dependaent2'],
+              value: true,
               errorMessage: 'required errorMessage',
             },
             minLength: {
@@ -47,16 +48,25 @@ class App extends Component {
         />{' '}
         <ValTextField
           required
+          readOnly
           outlined
+          placeholder="placeholder2"
           type="text"
           name="test2"
           label="Input Test 2"
           helperText="helper text 2"
           value={this.state['test2'] || ''}
           onChange={this.handleChange('test2')}
+          validate={{
+            pattern: {
+              value: /^[a-z\d\-_\s]+$/i,
+              errorMessage: 'pattern errorMessage',
+            },
+          }}
         />{' '}
         <ValTextField
           filled
+          placeholder="placeholder3"
           type="text"
           name="test3"
           label="Input Test 3"

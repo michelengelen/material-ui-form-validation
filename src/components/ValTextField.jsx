@@ -45,7 +45,7 @@ class ValTextField extends Component {
 
     this.renderFormLabel = this.renderFormLabel.bind(this);
     this.renderFormHelperText = this.renderFormHelperText.bind(this);
-    this.getDerivedProps = this.getDerivedProps.bind(this);
+    this.getMaterialProps = this.getMaterialProps.bind(this);
     this.getCustomProps = this.getCustomProps.bind(this);
 
     this.validations = {};
@@ -140,7 +140,7 @@ class ValTextField extends Component {
     const { name } = this.props;
     if (!this.context.isDirty(name)) this.context.setDirty(name);
     if (!this.context.isTouched(name)) this.context.setTouched(name);
-    this.validate();
+    if (this.context.submitted) this.validate();
     this.props.onChange(e);
   }
 
@@ -153,7 +153,7 @@ class ValTextField extends Component {
     if (!this.context.isTouched(name)) this.context.setTouched(name);
   }
 
-  getDerivedProps() {
+  getMaterialProps() {
     const clonedProps = cloneDeep(this.props);
 
     // delete all props that should not be spread down to the underlying Material UI component
@@ -167,24 +167,40 @@ class ValTextField extends Component {
     delete clonedProps.valueParser;
     delete clonedProps.valueFormatter;
     delete clonedProps.validate;
+
+    return clonedProps;
   }
 
   getCustomProps() {
-    const { id, name, helperText, label, outlined, filled, required, errorMessage } = this.props;
+    const {
+      id,
+      name,
+      helperText,
+      label,
+      outlined,
+      filled,
+      required,
+      errorMessage,
+      disabled,
+      readOnly,
+    } = this.props;
 
     const customProps = {};
 
+    customProps.disabled = disabled;
+    customProps.readOnly = readOnly;
     customProps.required = required || this.isRequired(name);
     customProps.error = this.context.hasError(name);
 
     const errorText = customProps.error && this.context.getError(name, errorMessage);
-    customProps.formHelperText = errorText || helperText || null;
+    customProps.helperText = errorText || helperText || null;
 
     customProps.ariaHelper = `input_${name}`;
-    customProps.variant = outlined ? 'outlined' : filled ? 'filled' : null;
 
     customProps.id = id || customProps.ariaHelper;
     customProps.label = label;
+
+    customProps.variant = outlined ? 'outlined' : filled ? 'filled' : null;
 
     if (outlined) {
       customProps.labelWidth = this.labelRef ? this.labelRef.offsetWidth : 0;
@@ -212,21 +228,35 @@ class ValTextField extends Component {
 
   render() {
     const { Tag } = this;
-    const materialProps = this.getDerivedProps();
-    const customProps = this.getCustomProps();
-    const { label, error, variant, ariaHelper, formHelperText, ...other } = customProps;
+    const materialProps = this.getMaterialProps();
+    const {
+      error,
+      label,
+      variant,
+      ariaHelper,
+      helperText,
+      disabled,
+      required,
+      ...other
+    } = this.getCustomProps();
 
     return (
-      <FormControl error={error} variant={variant}>
+      <FormControl
+        disabled={disabled}
+        error={error}
+        required={required}
+        variant={variant}
+      >
         {label && this.renderFormLabel(label)}
         <Tag
           {...materialProps}
+          value={materialProps.value || ''}
           {...other}
           aria-describedby={ariaHelper + '-helperText'}
           onChange={e => this.handleOnChange(e)}
           onBlur={e => this.handleOnBlur(e)}
         />
-        {formHelperText && this.renderFormHelperText(formHelperText)}
+        {helperText && this.renderFormHelperText(helperText)}
       </FormControl>
     );
   }
@@ -238,7 +268,9 @@ ValTextField.propTypes = {
   name: PropTypes.string.isRequired,
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 
-  // custom props for this implementation (these get deleted in getDerivedProps() method)
+  // custom props for this implementation (these get deleted in getMaterialProps() method)
+  disabled: PropTypes.bool,
+  required: PropTypes.bool,
   falseValue: PropTypes.any,
   trueValue: PropTypes.any,
   validate: PropTypes.object,
