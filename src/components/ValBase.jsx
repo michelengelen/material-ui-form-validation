@@ -30,11 +30,7 @@ class ValBase extends Component {
     // custom props for this implementation (these get deleted in getMaterialProps() method)
     checked: PropTypes.bool,
     defaultChecked: PropTypes.bool,
-    defaultValue: PropTypes.oneOfType([
-      PropTypes.string,
-      PropTypes.bool,
-      PropTypes.number,
-    ]),
+    defaultValue: PropTypes.oneOfType([PropTypes.string, PropTypes.bool, PropTypes.number]),
     falseValue: PropTypes.any,
     id: PropTypes.string,
     multiple: PropTypes.bool,
@@ -60,10 +56,16 @@ class ValBase extends Component {
     super(props);
 
     this.getAriaHelper = this.getAriaHelper.bind(this);
+
+    // value getters
     this.getFieldValue = this.getFieldValue.bind(this);
     this.getDefaultValue = this.getDefaultValue.bind(this);
+
+    // validation
     this.updateValidations = this.updateValidations.bind(this);
     this.validate = this.validate.bind(this);
+
+    // status getter
     this.isRequired = this.isRequired.bind(this);
 
     // event-handler methods
@@ -123,15 +125,29 @@ class ValBase extends Component {
     context.unregisterInput(this);
   }
 
+  /**
+   * get the string required for the formHelperText reference
+   * @returns {ValBase.props.id | string}
+   */
   getAriaHelper() {
     const { id, name } = this.props;
     return id || `input_${name}`;
   }
 
+  /**
+   * get the defaultValue for the instance
+   * @returns {*}
+   */
   getDefaultValue() {
     const { context } = this;
     const {
-      defaultChecked, defaultValue, falseValue, name, multiple, trueValue, type,
+      defaultChecked,
+      defaultValue,
+      falseValue,
+      name,
+      multiple,
+      trueValue,
+      type,
     } = this.props;
     let _defaultValue = '';
 
@@ -155,6 +171,11 @@ class ValBase extends Component {
     return isUndefined(value) ? defaultValue : value;
   }
 
+  /**
+   * get the current fields value (parsed/unformatted if applicable)
+   * @param   {object} event
+   * @returns {*}
+   */
   getFieldValue(event) {
     const {
       falseValue, multiple, trueValue, type,
@@ -176,11 +197,19 @@ class ValBase extends Component {
     return event && event.target && !isUndefined(event.target.value) ? event.target.value : event;
   }
 
+  /**
+   * check if the field is required
+   * @returns {ValBase.props.required | boolean}
+   */
   isRequired() {
     const { required } = this.props;
     return required || !!(this.validations.required && this.validations.required.value);
   }
 
+  /**
+   * update the validations for the instance
+   * @param   {object}  props
+   */
   updateValidations(props = this.props) {
     const { context } = this;
     this.validations = Object.assign({}, props.validate);
@@ -205,12 +234,19 @@ class ValBase extends Component {
     this.validate();
   }
 
+  /**
+   * validate the value of this instance
+   */
   validate() {
     const { context } = this;
     const { name } = this.props;
     context.validate(name);
   }
 
+  /**
+   * event-handler - handle the value-change of this instance
+   * @param   {object}  e - onChange-event
+   */
   handleOnChange(e) {
     const { context } = this;
     const { onChange, name } = this.props;
@@ -227,6 +263,10 @@ class ValBase extends Component {
     onChange(e);
   }
 
+  /**
+   * event-handler - handle onBlur event
+   * @param   {object}  e - onBlur-event
+   */
   handleOnBlur(e) {
     const { context } = this;
     const { name } = this.props;
