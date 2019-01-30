@@ -3,7 +3,7 @@ import toNumber from 'lodash.tonumber';
 import { isEmpty, isoDateFormat } from './utils';
 import minchecked from './minchecked';
 
-export default function validate(value, context, constraint = {}, input = {}) {
+const validate = (value, context, constraint = {}, input = {}) => {
   if (Array.isArray(input.value)) {
     return minchecked(value, context, constraint, input);
   }
@@ -13,24 +13,26 @@ export default function validate(value, context, constraint = {}, input = {}) {
   const { validations, props } = input;
 
   if (
-    (validations && validations.date) ||
-    (props && props.type && props.type.toLowerCase() === 'date')
+    (validations && validations.date)
+    || (props && props.type && props.type.toLowerCase() === 'date')
   ) {
     return (
       moment(value, [isoDateFormat, constraint.format || 'MM/DD/YYYY'], true).isSameOrAfter(
         constraint.value,
         'day',
-      ) ||
-      constraint.errorMessage ||
-      false
+      )
+      || constraint.errorMessage
+      || false
     );
   }
 
   const number = toNumber(value);
 
   return (
-    (!isNaN(number) && isFinite(number) && number >= toNumber(constraint.value)) ||
-    constraint.errorMessage ||
-    false
+    (!Number.isNaN(number) && Number.isFinite(number) && number >= toNumber(constraint.value))
+    || constraint.errorMessage
+    || false
   );
-}
+};
+
+export default validate;

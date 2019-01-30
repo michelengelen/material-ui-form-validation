@@ -1,14 +1,16 @@
 import toNumber from 'lodash.tonumber';
 import { isEmpty, isDecimal } from './utils';
 
-export default function validate(value, context, constraint = {}, input = {}) {
+const validate = (value, context, constraint = {}, input = {}) => {
   if (isEmpty(input.value)) return true;
 
   const min = toNumber(constraint.value);
 
   return (
-    (!isNaN(min) && isFinite(min) && !isDecimal(min) && min <= input.value.length) ||
-    constraint.errorMessage ||
-    false
+    (!Number.isNaN(min) && Number.isFinite(min) && !isDecimal(min) && min <= input.value.length)
+    || constraint.errorMessage
+    || false
   );
-}
+};
+
+export default validate;

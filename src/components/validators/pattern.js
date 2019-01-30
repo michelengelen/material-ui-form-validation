@@ -34,9 +34,9 @@ const validate = (value, context, requirement = {}) => {
   const reqValues = Array.isArray(requirement.value) ? requirement.value : [requirement.value];
 
   return (
-    reqValues.some(expression => asRegExp(expression).test(value)) ||
-    requirement.errorMessage ||
-    false
+    reqValues.some(expression => asRegExp(expression).test(value))
+    || requirement.errorMessage
+    || false
   );
 };
 

@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { Component } from 'react';
 import ValForm from 'components/ValForm';
 import ValTextField from 'components/ValTextField';
@@ -6,16 +7,21 @@ class App extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {};
+    this.state = {
+      test1: '',
+      test2: '',
+      test3: '',
+    };
   }
 
-  handleChange = name => event => {
+  handleChange = name => (event) => {
     this.setState({
       [name]: event.target.value,
     });
   };
 
   render() {
+    const { state } = this;
     return (
       <ValForm
         onValidSubmit={() => {
@@ -26,13 +32,12 @@ class App extends Component {
         }}
       >
         <ValTextField
-          disabled
           type="text"
-          name={'test1'}
-          value={this.state['test1'] || ''}
+          name="test1"
+          value={state.test1 || ''}
           label="Input Test 1"
           onChange={this.handleChange('test1')}
-          errorMessage="TEST ERRMSG"
+          errorMessage="PROPS ERRMSG"
           helperText="helper text 1"
           validate={{
             required: {
@@ -43,19 +48,21 @@ class App extends Component {
               value: 2,
               errorMessage: 'minLength errorMessage',
             },
-            email: true,
+            email: {
+              value: true,
+            },
           }}
-        />{' '}
+        />
+        {' '}
         <ValTextField
-          required
-          readOnly
           outlined
+          required
           placeholder="placeholder2"
           type="text"
           name="test2"
           label="Input Test 2"
           helperText="helper text 2"
-          value={this.state['test2'] || ''}
+          value={state.test2 || ''}
           onChange={this.handleChange('test2')}
           validate={{
             pattern: {
@@ -63,7 +70,8 @@ class App extends Component {
               errorMessage: 'pattern errorMessage',
             },
           }}
-        />{' '}
+        />
+        {' '}
         <ValTextField
           filled
           placeholder="placeholder3"
@@ -71,7 +79,7 @@ class App extends Component {
           name="test3"
           label="Input Test 3"
           helperText="helper text 3"
-          value={this.state['test3'] || ''}
+          value={state.test3 || ''}
           onChange={this.handleChange('test3')}
         />
         <button type="submit">test submit</button>

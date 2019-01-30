@@ -8,11 +8,17 @@ function floatSafeRemainder(val, step) {
   const decCount = valDecCount > stepDecCount ? valDecCount : stepDecCount;
   const valInt = parseInt(val.toFixed(decCount).replace('.', ''), 10);
   const stepInt = parseInt(step.toFixed(decCount).replace('.', ''), 10);
-  return (valInt % stepInt) / Math.pow(10, decCount);
+  return (valInt % stepInt) / (10 ** decCount);
 }
 
-export default function validate(value, context, constraint = {}) {
+const validate = (value, context, constraint = {}) => {
   if (isEmpty(value)) return true;
 
-  return floatSafeRemainder(toNumber(value), toNumber(constraint.value)) === 0 || constraint.errorMessage || false;
-}
+  return (
+    floatSafeRemainder(toNumber(value), toNumber(constraint.value)) === 0
+    || constraint.errorMessage
+    || false
+  );
+};
+
+export default validate;

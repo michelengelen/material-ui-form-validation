@@ -1,6 +1,8 @@
-import { isEmpty } from './utils';
 import _get from 'lodash.get';
+import { isEmpty } from './utils';
 
-export default function validate(value, context, constraint = {}) {
-  return isEmpty(value) || value === _get(context, constraint.value) || constraint.errorMessage || false;
-}
+const validate = (value, context, constraint = {}) => (
+  isEmpty(value) || value === _get(context, constraint.value) || constraint.errorMessage || false
+);
+
+export default validate;

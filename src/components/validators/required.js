@@ -1,5 +1,7 @@
 import { isEmpty } from './utils';
 
-export default function validate(value, context, {value: enabled = true, errorMessage = false} = {}) {
-  return !enabled || !isEmpty(value) || errorMessage || false;
-}
+const validate = (value, context, { value: enabled = true, errorMessage = false } = {}) => (
+  !enabled || !isEmpty(value) || errorMessage || false
+);
+
+export default validate;

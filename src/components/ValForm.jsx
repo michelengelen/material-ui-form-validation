@@ -16,7 +16,7 @@ import validators from './validators';
  * @param   {object}  input
  * @returns {string}  name
  */
-const validComponent = input => {
+const validComponent = (input) => {
   const name = input && input.props ? input.props.name : undefined;
 
   if (!name) {
@@ -43,6 +43,26 @@ const getInputErrorMessage = (input, ruleName) => {
 };
 
 class ValForm extends Component {
+  static propTypes = {
+    disabled: PropTypes.bool,
+    children: PropTypes.node,
+    onSubmit: PropTypes.func,
+    onValidSubmit: PropTypes.func,
+    onInvalidSubmit: PropTypes.func,
+    noValidate: PropTypes.bool,
+    model: PropTypes.object,
+  };
+
+  static defaultProps = {
+    disabled: false,
+    noValidate: true,
+    model: {},
+    children: [],
+    onSubmit: x => x,
+    onValidSubmit: x => x,
+    onInvalidSubmit: x => x,
+  };
+
   /**
    * @param   {object}  props
    * @constructor
@@ -64,6 +84,7 @@ class ValForm extends Component {
     this.isInputRegistered = this.isInputRegistered.bind(this);
 
     // input value getters
+    this.getDefaultValue = this.getDefaultValue.bind(this);
     this.getValue = this.getValue.bind(this);
     this.getValues = this.getValues.bind(this);
 
@@ -92,6 +113,7 @@ class ValForm extends Component {
       _errors: {},
       validators,
       registerInput: this.registerInput,
+      unregisterInput: this.unregisterInput,
       validate: this.validateInput,
       isBad: this.isBad,
       setBad: this.setBad,
@@ -102,314 +124,58 @@ class ValForm extends Component {
       setDirty: this.setDirty,
       isTouched: this.isTouched,
       setTouched: this.setTouched,
+      getDefaultValue: this.getDefaultValue,
     };
   }
 
   componentDidMount() {}
 
   /**
-   * register an input in the form-Container to handle all actions regarding them
-   *
-   * @param   {object}  input
-   * @param   {object}  updater
+   * the wrapper function for handling the forms submit event
+   * @param   {object}  e
+   * @returns {Promise<void>}
    */
-  registerInput(input, updater = input && input.setState && input.setState.bind(input)) {
-    const name = validComponent(input);
+  async onSubmit(e) {
+    const { state } = this;
+    const {
+      disabled, onSubmit, onValidSubmit, onInvalidSubmit,
+    } = this.props;
 
-    this.isInputRegistered(input)
-      .then(oldName => {
-        this.unregisterInput({ props: { name: oldName } });
-      })
-      .catch(() => {})
-      .finally(() => {
-        this._inputs[name] = input;
-        this._updater[name] = updater;
-
-        if (typeof input.validations === 'object') {
-          this._validators[input.props.name] = this.compileValidationRules(
-            input,
-            input.validations,
-          );
-        }
-      });
-  }
-
-  /**
-   * unregister an input and its corresponding updater
-   *
-   * @param   {object}  input
-   */
-  unregisterInput(input) {
-    const { name } = validComponent(input);
-    delete this._inputs[name];
-    delete this._updater[name];
-  }
-
-  /**
-   * check if an input requesting to be registered is already registered with another name
-   * @param   {object}  input
-   * @returns {Promise<*>}
-   */
-  isInputRegistered(input) {
-    return new Promise((resolve, reject) => {
-      for (const key in this._inputs) {
-        if (this._inputs.hasOwnProperty(key) && this._inputs[key] === input) {
-          resolve(key);
-        }
-      }
-
-      reject(null);
-    });
-  }
-
-  /**
-   * check if the input with the given name has an error
-   * @param   {string}  inputName
-   * @returns {boolean}
-   */
-  hasError(inputName) {
-    return inputName ? !!this.state._errors[inputName] : Object.keys(this.state._errors).length > 0;
-  }
-
-  /**
-   * check if the input with the given name is dirty
-   * @param   {string}  inputName
-   * @returns {boolean}
-   */
-  isDirty(inputName) {
-    return inputName
-      ? !!this.state._dirtyInputs[inputName]
-      : Object.keys(this.state._dirtyInputs).length > 0;
-  }
-
-  /**
-   * check if the input with the given name was touched before
-   * @param   {string}  inputName
-   * @returns {boolean}
-   */
-  isTouched(inputName) {
-    return inputName
-      ? !!this.state._touchedInputs[inputName]
-      : Object.keys(this.state._touchedInputs).length > 0;
-  }
-
-  /**
-   * check if the input with the given name is bad
-   * @param   {string}  inputName
-   * @returns {boolean}
-   */
-  isBad(inputName) {
-    return inputName
-      ? !!this.state._badInputs[inputName]
-      : Object.keys(this.state._badInputs).length > 0;
-  }
-
-  /**
-   * set an error to the input with the given errorText
-   * @param   {string}              inputName
-   * @param   {(boolean|string)}  [error=true]
-   * @param   {(boolean|string)}  [errorText=error]
-   * @param   {boolean}             [update=true]
-   */
-  setError(inputName, error = true, errorText = error, update = true) {
-    if (error && !isString(errorText) && typeof errorText !== 'boolean') {
-      errorText = errorText + '';
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
     }
 
-    let changed = false;
-    const currentError = this.hasError(inputName);
-    let _errors = { ...this.state._errors };
-
-    if (
-      ((_errors[inputName] === undefined && !error) ||
-        _errors[inputName] === (errorText || true)) &&
-      error === currentError
-    )
+    if (disabled) {
       return;
-    if (error) {
-      _errors[inputName] = errorText || true;
-      changed = true;
+    }
+
+    const values = this.getValues();
+    const { isValid, errors } = await this.validateAll(values, false);
+
+    this.setTouched(Object.keys(this._inputs), true, false);
+    this.updateInputs();
+
+    if (onSubmit && typeof onSubmit === 'function') {
+      onSubmit(e, errors, values);
+    }
+
+    if (isValid) {
+      onValidSubmit(e, values);
     } else {
-      delete _errors[inputName];
-      changed = true;
+      onInvalidSubmit(e, errors, values);
     }
 
-    if (!changed) return;
-
-    this.setState({ _errors }, () => {
-      if (update) this.updateInputs();
-    });
+    if (!state.submitted) this.setState({ submitted: true });
   }
 
   /**
-   * set the input(s) status to 'dirty' (meaning it had/has a value)
-   * @param   {(string|string[])}   inputs
-   * @param   {boolean}               [dirty=true]
-   * @param   {boolean}               [update=true]
-   */
-  setDirty(inputs, dirty = true, update = true) {
-    let _dirtyInputs = { ...this.state._dirtyInputs };
-    let changed = false;
-
-    if (!Array.isArray(inputs)) {
-      inputs = [inputs];
-    }
-
-    inputs.forEach(inputName => {
-      if (dirty && !_dirtyInputs[inputName]) {
-        _dirtyInputs[inputName] = true;
-        changed = true;
-      } else if (!dirty && _dirtyInputs[inputName]) {
-        delete _dirtyInputs[inputName];
-        changed = true;
-      }
-    });
-
-    if (!changed) return;
-
-    this.setState({ _dirtyInputs }, () => {
-      if (update) this.updateInputs();
-    });
-  }
-
-  /**
-   * set the input(s) status to 'touched' (meaning it was focussed and blurred)
-   * @param   {(string|string[])}   inputs
-   * @param   {boolean}               [touched=true]
-   * @param   {boolean}               [update=true]
-   */
-  setTouched(inputs, touched = true, update = true) {
-    let _touchedInputs = { ...this.state._touchedInputs };
-    let changed = false;
-
-    if (!Array.isArray(inputs)) {
-      inputs = [inputs];
-    }
-
-    inputs.forEach(inputName => {
-      if (touched && !_touchedInputs[inputName]) {
-        _touchedInputs[inputName] = true;
-        changed = true;
-      } else if (!touched && _touchedInputs[inputName]) {
-        delete _touchedInputs[inputName];
-        changed = true;
-      }
-    });
-
-    if (!changed) return;
-
-    this.setState({ _touchedInputs }, () => {
-      if (update) this.updateInputs();
-    });
-  }
-
-  /**
-   * set the input(s) status to 'touched' (meaning it was focussed and blurred)
-   * @param   {(string|string[])}   inputs
-   * @param   {boolean}               [isBad=true]
-   * @param   {boolean}               [update=true]
-   */
-  setBad(inputs, isBad = true, update = true) {
-    let _badInputs = { ...this.state._badInputs };
-    let changed = false;
-
-    if (!Array.isArray(inputs)) {
-      inputs = [inputs];
-    }
-
-    inputs.forEach(inputName => {
-      if (isBad && !_badInputs[inputName]) {
-        _badInputs[inputName] = true;
-        changed = true;
-      } else if (!isBad && _badInputs[inputName]) {
-        delete _badInputs[inputName];
-        changed = true;
-      }
-    });
-
-    if (!changed) return;
-
-    this.setState({ _badInputs }, () => {
-      if (update) this.updateInputs();
-    });
-  }
-
-  /**
-   * get the error message set in the validator or in the props of the component
+   * get the default value for an input from the model
    * @param   {string}  inputName
-   * @param   {string}  errorMessage
-   * @returns {boolean|string|string|RegExp}
+   * @returns {*}
    */
-  getError(inputName, errorMessage = 'Field is invalid') {
-    return isString(this.state._errors[inputName])
-      ? isString(this.state._errors[inputName]) && this.state._errors[inputName]
-      : errorMessage;
-  }
-
-  /**
-   * prepare all validation rules for the given input
-   * @param   {object}  input
-   * @param   {object}  ruleProp
-   * @returns {Function}
-   */
-  compileValidationRules(input, ruleProp) {
-    return async (val, context) => {
-      if (this.isBad(input.props.name)) {
-        return false;
-      }
-
-      let result = true;
-      const validations = [];
-
-      for (const rule in ruleProp) {
-        if (ruleProp.hasOwnProperty(rule)) {
-          let ruleResult;
-
-          const promise = new Promise((resolve, reject) => {
-            const callback = value => resolve({ value, rule });
-
-            if (typeof ruleProp[rule] === 'function') {
-              ruleResult = ruleProp[rule](val, context, input, callback);
-            } else {
-              if (typeof validators[rule] !== 'function') {
-                return reject(new Error(`Invalid input validation rule: "${rule}"`));
-              }
-
-              if (ruleProp[rule].enabled === false) {
-                ruleResult = true;
-              } else {
-                ruleResult = validators[rule](val, context, ruleProp[rule], input, callback);
-              }
-            }
-
-            if (ruleResult && typeof ruleResult.then === 'function') {
-              ruleResult.then(callback);
-            } else if (ruleResult !== undefined) {
-              callback(ruleResult);
-            } else {
-              // they are using the callback
-            }
-          });
-
-          validations.push(promise);
-        }
-      }
-
-      await Promise.all(validations).then(results => {
-        results.every(ruleResult => {
-          if (result === true && ruleResult.value !== true) {
-            result =
-              (isString(ruleResult.value) && ruleResult.value) ||
-              getInputErrorMessage(input, ruleResult.rule) ||
-              getInputErrorMessage(this, ruleResult.rule) ||
-              false;
-          }
-          return result === true;
-        });
-      });
-
-      return result;
-    };
+  getDefaultValue(inputName) {
+    const { model } = this.props;
+    return _get(model, inputName);
   }
 
   /**
@@ -440,6 +206,317 @@ class ValForm extends Component {
 
       return values;
     }, {});
+  }
+
+  /**
+   * set an error to the input with the given errorText
+   * @param   {string}              inputName
+   * @param   {(boolean|string)}    [error=true]
+   * @param   {(boolean|string)}    [errorText=error]
+   * @param   {boolean}             [update=true]
+   */
+  setError(inputName, error = true, errorText = error, update = true) {
+    const { state } = this;
+    let text;
+
+    if (error && !isString(errorText) && typeof errorText !== 'boolean') {
+      text = errorText.toString();
+    }
+
+    let changed = false;
+    const hasError = this.hasError(inputName);
+    const _errors = { ...state._errors };
+
+    if (
+      ((_errors[inputName] === undefined && !error) || _errors[inputName] === (text || true))
+      && error === hasError
+    ) return;
+
+    if (error) {
+      _errors[inputName] = text || true;
+      changed = true;
+    } else {
+      delete _errors[inputName];
+      changed = true;
+    }
+
+    if (!changed) return;
+
+    this.setState({ _errors }, () => {
+      if (update) this.updateInputs();
+    });
+  }
+
+  /**
+   * set the input(s) status to 'dirty' (meaning it had/has a value)
+   * @param   {(string|string[])}   inputs
+   * @param   {boolean}             [dirty=true]
+   * @param   {boolean}             [update=true]
+   */
+  setDirty(inputs, dirty = true, update = true) {
+    const { state } = this;
+    const _dirtyInputs = { ...state._dirtyInputs };
+
+    let changed = false;
+    let inputArray = inputs;
+
+    if (!Array.isArray(inputs)) {
+      inputArray = [inputs];
+    }
+
+    inputArray.forEach((inputName) => {
+      if (dirty && !_dirtyInputs[inputName]) {
+        _dirtyInputs[inputName] = true;
+        changed = true;
+      } else if (!dirty && _dirtyInputs[inputName]) {
+        delete _dirtyInputs[inputName];
+        changed = true;
+      }
+    });
+
+    if (!changed) return;
+
+    this.setState({ _dirtyInputs }, () => {
+      if (update) this.updateInputs();
+    });
+  }
+
+  /**
+   * set the input(s) status to 'touched' (meaning it was focussed and blurred)
+   * @param   {(string|string[])}   inputs
+   * @param   {boolean}             [touched=true]
+   * @param   {boolean}             [update=true]
+   */
+  setTouched(inputs, touched = true, update = true) {
+    const { state } = this;
+    const _touchedInputs = { ...state._touchedInputs };
+
+    let changed = false;
+    let inputArray = inputs;
+
+    if (!Array.isArray(inputs)) {
+      inputArray = [inputs];
+    }
+
+    inputArray.forEach((inputName) => {
+      if (touched && !_touchedInputs[inputName]) {
+        _touchedInputs[inputName] = true;
+        changed = true;
+      } else if (!touched && _touchedInputs[inputName]) {
+        delete _touchedInputs[inputName];
+        changed = true;
+      }
+    });
+
+    if (!changed) return;
+
+    this.setState({ _touchedInputs }, () => {
+      if (update) this.updateInputs();
+    });
+  }
+
+  /**
+   * set the input(s) status to 'touched' (meaning it was focussed and blurred)
+   * @param   {(string|string[])}   inputs
+   * @param   {boolean}             [isBad=true]
+   * @param   {boolean}             [update=true]
+   */
+  setBad(inputs, isBad = true, update = true) {
+    const { state } = this;
+    const _badInputs = { ...state._badInputs };
+
+    let changed = false;
+    let inputArray = inputs;
+
+    if (!Array.isArray(inputs)) {
+      inputArray = [inputs];
+    }
+
+    inputArray.forEach((inputName) => {
+      if (isBad && !_badInputs[inputName]) {
+        _badInputs[inputName] = true;
+        changed = true;
+      } else if (!isBad && _badInputs[inputName]) {
+        delete _badInputs[inputName];
+        changed = true;
+      }
+    });
+
+    if (!changed) return;
+
+    this.setState({ _badInputs }, () => {
+      if (update) this.updateInputs();
+    });
+  }
+
+  /**
+   * get the error message set in the validator or in the props of the component
+   * @param   {string}  inputName
+   * @param   {string}  errorMessage
+   * @returns {boolean|string|string|RegExp}
+   */
+  getError(inputName, errorMessage = 'Field is invalid') {
+    const { state } = this;
+    return isString(state._errors[inputName])
+      ? isString(state._errors[inputName]) && state._errors[inputName]
+      : errorMessage;
+  }
+
+  /**
+   * check if the input with the given name is dirty
+   * @param   {string}  inputName
+   * @returns {boolean}
+   */
+  isDirty(inputName) {
+    const { state } = this;
+    return inputName ? !!state._dirtyInputs[inputName] : Object.keys(state._dirtyInputs).length > 0;
+  }
+
+  /**
+   * check if the input with the given name was touched before
+   * @param   {string}  inputName
+   * @returns {boolean}
+   */
+  isTouched(inputName) {
+    const { state } = this;
+    return inputName
+      ? !state._touchedInputs[inputName]
+      : Object.keys(state._touchedInputs).length > 0;
+  }
+
+  /**
+   * check if the input with the given name is bad
+   * @param   {string}  inputName
+   * @returns {boolean}
+   */
+  isBad(inputName) {
+    const { state } = this;
+    return inputName ? !!state._badInputs[inputName] : Object.keys(state._badInputs).length > 0;
+  }
+
+  /**
+   * check if the input with the given name has an error
+   * @param   {string}  inputName
+   * @returns {boolean}
+   */
+  hasError(inputName) {
+    const { state } = this;
+    return inputName ? !!state._errors[inputName] : Object.keys(state._errors).length > 0;
+  }
+
+  /**
+   * prepare all validation rules for the given input
+   * @param   {object}  input
+   * @param   {object}  ruleProp
+   * @returns {Function}
+   */
+  compileValidationRules(input, ruleProp) {
+    return async (val, context) => {
+      if (this.isBad(input.props.name)) {
+        return false;
+      }
+
+      let result = true;
+
+      const validations = Object.keys(ruleProp).map((rule) => {
+        if (Object.prototype.hasOwnProperty.call(ruleProp, rule)) {
+          let ruleResult;
+
+          return new Promise((resolve, reject) => {
+            const callback = value => resolve({ value, rule });
+
+            if (typeof ruleProp[rule] === 'function') {
+              ruleResult = ruleProp[rule](val, context, input, callback);
+            } else {
+              if (typeof validators[rule] !== 'function') {
+                return reject(new Error(`Invalid input validation rule: "${rule}"`));
+              }
+
+              if (ruleProp[rule].enabled === false) {
+                ruleResult = true;
+              } else {
+                ruleResult = validators[rule](val, context, ruleProp[rule], input, callback);
+              }
+            }
+
+            if (ruleResult && typeof ruleResult.then === 'function') {
+              return ruleResult.then(callback);
+            }
+
+            return callback(ruleResult);
+          });
+        }
+        return null;
+      });
+
+      await Promise.all(validations).then((results) => {
+        results.every((ruleResult) => {
+          if (result === true && ruleResult.value !== true) {
+            result = (isString(ruleResult.value) && ruleResult.value)
+              || getInputErrorMessage(input, ruleResult.rule)
+              || getInputErrorMessage(this, ruleResult.rule)
+              || false;
+          }
+          return result === true;
+        });
+      });
+
+      return result;
+    };
+  }
+
+  /**
+   * check if an input requesting to be registered is already registered with another name
+   * @param   {object}  input
+   * @returns {Promise<*>}
+   */
+  isInputRegistered(input) {
+    return new Promise((resolve, reject) => {
+      Object.keys(this._inputs).forEach((key) => {
+        if (
+          Object.prototype.hasOwnProperty.call(this._inputs, key)
+          && this._inputs[key] === input
+        ) {
+          resolve(key);
+        }
+      });
+      reject('input is not registered');
+    });
+  }
+
+  /**
+   * unregister an input and its corresponding updater
+   * @param   {object}  input
+   */
+  unregisterInput(input) {
+    const { name } = validComponent(input);
+    delete this._inputs[name];
+    delete this._updater[name];
+  }
+
+  /**
+   * register an input in the form-Container to handle all actions regarding them
+   * @param   {object}  input
+   * @param   {object}  updater
+   */
+  async registerInput(input, updater = input && input.setState && input.setState.bind(input)) {
+    const name = validComponent(input);
+
+    this.isInputRegistered(input)
+      .then((oldName) => {
+        this.unregisterInput({ props: { name: oldName } });
+      })
+      .finally(() => {
+        this._inputs[name] = input;
+        this._updater[name] = updater;
+
+        if (typeof input.validations === 'object') {
+          this._validators[input.props.name] = this.compileValidationRules(
+            input,
+            input.validations,
+          );
+        }
+      });
   }
 
   /**
@@ -494,22 +571,31 @@ class ValForm extends Component {
     return isValid;
   }
 
+  /**
+   * validate all registered inputs
+   * @param   {object}  context
+   * @param   {boolean} update
+   * @returns {Promise<{isValid: boolean, errors: Array}>}
+   */
   async validateAll(context, update = true) {
+    const { props, _inputs } = this;
     const errors = [];
     let isValid = true;
 
-    for (const inputName in this._inputs) {
-      if (this._inputs.hasOwnProperty(inputName)) {
-        const valid = await this.validateOne(inputName, context, update);
+    const inputNames = Object.keys(_inputs);
+
+    for (let i = 0; i < inputNames.length; i++) {
+      if (Object.prototype.hasOwnProperty.call(_inputs, inputNames[i])) {
+        const valid = await this.validateOne(inputNames[i], context, update);
         if (!valid) {
           isValid = false;
-          errors.push(inputName);
+          errors.push(inputNames[i]);
         }
       }
     }
 
-    if (this.props.validate) {
-      let formLevelValidation = this.props.validate;
+    if (props.validate) {
+      let formLevelValidation = props.validate;
       if (!Array.isArray(formLevelValidation)) {
         formLevelValidation = [formLevelValidation];
       }
@@ -528,6 +614,7 @@ class ValForm extends Component {
 
   /**
    * update all inputs
+   * @recursive
    */
   updateInputs() {
     if (this.throttledUpdateInputs) {
@@ -535,72 +622,31 @@ class ValForm extends Component {
       return;
     }
 
-    // this is just until a more intelligent way to determine which inputs need updated is implemented
+    // this is just until a more intelligent way to
+    // determine which inputs need updated is implemented
     this.throttledUpdateInputs = _throttle(() => {
       Object.keys(this._updater).forEach(
-        inputName =>
-          this._updater[inputName] &&
-          this._inputs[inputName] &&
-          this._updater[inputName].call(this._inputs[inputName], {}),
+        inputName => this._updater[inputName]
+          && this._inputs[inputName]
+          && this._updater[inputName].call(this._inputs[inputName], {}),
       );
     }, 250);
 
     this.updateInputs();
   }
 
-  onSubmit = async e => {
-    if (e && typeof e.preventDefault === 'function') {
-      e.preventDefault();
-    }
-
-    if (this.props.disabled) {
-      return;
-    }
-
-    const values = this.getValues();
-
-    const { isValid, errors } = await this.validateAll(values, false);
-
-    this.setTouched(Object.keys(this._inputs), true, false);
-
-    this.updateInputs();
-
-    if (this.props.onSubmit && typeof this.props.onSubmit === 'function') {
-      this.props.onSubmit(e, errors, values);
-    }
-
-    if (isValid) {
-      this.props.onValidSubmit(e, values);
-    } else {
-      this.props.onInvalidSubmit(e, errors, values);
-    }
-
-    !this.state.submitted && this.setState({ submitted: true });
-  };
-
   render() {
+    const { state } = this;
     const { noValidate, children } = this.props;
-    const contextValue = {
-      ...this.state,
-    };
 
     return (
-      <ValFormContext.Provider value={contextValue}>
-        <form onSubmit={e => this.onSubmit(e)} noValidate={noValidate}>{children}</form>
+      <ValFormContext.Provider value={state}>
+        <form onSubmit={e => this.onSubmit(e)} noValidate={noValidate}>
+          {children}
+        </form>
       </ValFormContext.Provider>
     );
   }
 }
-
-ValForm.propTypes = {
-  children: PropTypes.node,
-  onValidSubmit: PropTypes.func,
-  onInvalidSubmit: PropTypes.func,
-  noValidate: PropTypes.bool,
-};
-
-ValForm.defaultProps = {
-  noValidate: true,
-};
 
 export default ValForm;
