@@ -120,7 +120,7 @@ class ValTextField extends ValBase {
     customProps.disabled = disabled;
     customProps.readOnly = readOnly;
     customProps.required = required || this.isRequired(name);
-    customProps.error = this.context.hasError(name);
+    customProps.error = this.context.submitted && this.context.hasError(name);
 
     const errorText = customProps.error && this.context.getError(name, errorMessage);
     customProps.helperText = errorText || helperText || null;
