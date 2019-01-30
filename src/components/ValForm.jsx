@@ -380,7 +380,7 @@ class ValForm extends Component {
   isTouched(inputName) {
     const { state } = this;
     return inputName
-      ? !state._touchedInputs[inputName]
+      ? !!state._touchedInputs[inputName]
       : Object.keys(state._touchedInputs).length > 0;
   }
 
@@ -638,6 +638,8 @@ class ValForm extends Component {
   render() {
     const { state } = this;
     const { noValidate, children } = this.props;
+
+    console.log('##### state: ', state);
 
     return (
       <ValFormContext.Provider value={state}>
