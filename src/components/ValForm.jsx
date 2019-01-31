@@ -217,7 +217,7 @@ class ValForm extends Component {
    */
   setError(inputName, error = true, errorText = error, update = true) {
     const { state } = this;
-    let text;
+    let text = errorText;
 
     if (error && !isString(errorText) && typeof errorText !== 'boolean') {
       text = errorText.toString();
@@ -358,7 +358,7 @@ class ValForm extends Component {
   getError(inputName, errorMessage = 'Field is invalid') {
     const { state } = this;
     return isString(state._errors[inputName])
-      ? isString(state._errors[inputName]) && state._errors[inputName]
+      ? state._errors[inputName]
       : errorMessage;
   }
 
@@ -417,12 +417,13 @@ class ValForm extends Component {
       }
 
       let result = true;
+      const validations = [];
 
-      const validations = Object.keys(ruleProp).map((rule) => {
-        if (Object.prototype.hasOwnProperty.call(ruleProp, rule)) {
+      for (const rule in ruleProp) {
+        if (ruleProp.hasOwnProperty(rule)) {
           let ruleResult;
 
-          return new Promise((resolve, reject) => {
+          const promise = new Promise((resolve, reject) => {
             const callback = value => resolve({ value, rule });
 
             if (typeof ruleProp[rule] === 'function') {
@@ -440,14 +441,17 @@ class ValForm extends Component {
             }
 
             if (ruleResult && typeof ruleResult.then === 'function') {
-              return ruleResult.then(callback);
+              ruleResult.then(callback);
+            } else if (ruleResult !== undefined) {
+              callback(ruleResult);
+            } else {
+              // they are using the callback
             }
-
-            return callback(ruleResult);
           });
+
+          validations.push(promise);
         }
-        return null;
-      });
+      }
 
       await Promise.all(validations).then((results) => {
         results.every((ruleResult) => {
@@ -638,8 +642,6 @@ class ValForm extends Component {
   render() {
     const { state } = this;
     const { noValidate, children } = this.props;
-
-    console.log('##### state: ', state);
 
     return (
       <ValFormContext.Provider value={state}>

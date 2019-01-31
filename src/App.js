@@ -50,6 +50,7 @@ class App extends Component {
             },
             email: {
               value: true,
+              errorMessage: 'email errorMessage',
             },
           }}
         />
