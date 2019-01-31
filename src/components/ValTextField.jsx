@@ -171,8 +171,6 @@ class ValTextField extends ValBase {
       ...other
     } = this.getCustomProps();
 
-    if (materialProps.name === 'test1') console.log('#### validation from render: ', this.validations);
-
     const value = this.getViewValue();
 
     return (
