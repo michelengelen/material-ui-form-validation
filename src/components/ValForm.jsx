@@ -417,13 +417,12 @@ class ValForm extends Component {
       }
 
       let result = true;
-      const validations = [];
 
-      for (const rule in ruleProp) {
-        if (ruleProp.hasOwnProperty(rule)) {
+      const validations = Object.keys(ruleProp).map((rule) => {
+        if (Object.prototype.hasOwnProperty.call(ruleProp, rule)) {
           let ruleResult;
 
-          const promise = new Promise((resolve, reject) => {
+          return new Promise((resolve, reject) => {
             const callback = value => resolve({ value, rule });
 
             if (typeof ruleProp[rule] === 'function') {
@@ -441,17 +440,14 @@ class ValForm extends Component {
             }
 
             if (ruleResult && typeof ruleResult.then === 'function') {
-              ruleResult.then(callback);
-            } else if (ruleResult !== undefined) {
-              callback(ruleResult);
-            } else {
-              // they are using the callback
+              return ruleResult.then(callback);
             }
-          });
 
-          validations.push(promise);
+            return callback(ruleResult);
+          });
         }
-      }
+        return null;
+      });
 
       await Promise.all(validations).then((results) => {
         results.every((ruleResult) => {
