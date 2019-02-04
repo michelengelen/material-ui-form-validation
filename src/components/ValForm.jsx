@@ -46,7 +46,6 @@ class ValForm extends Component {
   static propTypes = {
     disabled: PropTypes.bool,
     children: PropTypes.node,
-    onSubmit: PropTypes.func,
     onValidSubmit: PropTypes.func,
     onInvalidSubmit: PropTypes.func,
     noValidate: PropTypes.bool,
@@ -58,7 +57,6 @@ class ValForm extends Component {
     noValidate: true,
     model: {},
     children: [],
-    onSubmit: x => x,
     onValidSubmit: x => x,
     onInvalidSubmit: x => x,
   };
@@ -71,7 +69,7 @@ class ValForm extends Component {
     super(props);
 
     // form submit-handling
-    this.onSubmit = this.onSubmit.bind(this);
+    this.handleSubmit = this.handleSubmit.bind(this);
 
     // form validation handling
     this.validateInput = this.validateInput.bind(this);
@@ -126,44 +124,6 @@ class ValForm extends Component {
       setTouched: this.setTouched,
       getDefaultValue: this.getDefaultValue,
     };
-  }
-
-  /**
-   * the wrapper function for handling the forms submit event
-   * @param   {object}  e
-   * @returns {Promise<void>}
-   */
-  async onSubmit(e) {
-    const { state } = this;
-    const {
-      disabled, onValidSubmit, onInvalidSubmit,
-    } = this.props;
-
-    // if we have a valid event prevent the default action
-    if (e && typeof e.preventDefault === 'function') {
-      e.preventDefault();
-    }
-
-    if (disabled) {
-      return;
-    }
-
-    const values = this.getValues();
-
-    // validate all inputs
-    const { isValid, errors } = await this.validateAll(values, false);
-
-    // set all inputs to touched state
-    this.setTouched(Object.keys(this._inputs), true, false);
-    this.updateInputs();
-
-    if (isValid) {
-      onValidSubmit(e, values);
-    } else {
-      onInvalidSubmit(e, errors, values);
-    }
-
-    if (!state.submitted) this.setState({ submitted: true });
   }
 
   /**
@@ -358,6 +318,44 @@ class ValForm extends Component {
     return isString(state._errors[inputName])
       ? state._errors[inputName]
       : errorMessage;
+  }
+
+  /**
+   * the wrapper function for handling the forms submit event
+   * @param   {object}  e
+   * @returns {Promise<void>}
+   */
+  async handleSubmit(e) {
+    const { state } = this;
+    const {
+      disabled, onValidSubmit, onInvalidSubmit,
+    } = this.props;
+
+    // if we have a valid event prevent the default action
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+    }
+
+    if (disabled) {
+      return;
+    }
+
+    const values = this.getValues();
+
+    // validate all inputs
+    const { isValid, errors } = await this.validateAll(values, false);
+
+    // set all inputs to touched state
+    this.setTouched(Object.keys(this._inputs), true, false);
+    this.updateInputs();
+
+    if (isValid) {
+      onValidSubmit(e, values);
+    } else {
+      onInvalidSubmit(e, errors, values);
+    }
+
+    if (!state.submitted) this.setState({ submitted: true });
   }
 
   /**
@@ -571,7 +569,7 @@ class ValForm extends Component {
 
   /**
    * validate all registered inputs
-   * gets called from the onSubmit method
+   * gets called from the handleSubmit method
    * @param   {object}  context
    * @param   {boolean} update
    * @returns {Promise<{isValid: boolean, errors: Array}>}
@@ -644,7 +642,7 @@ class ValForm extends Component {
 
     return (
       <ValFormContext.Provider value={state}>
-        <form onSubmit={e => this.onSubmit(e)} noValidate={noValidate}>
+        <form onSubmit={e => this.handleSubmit(e)} noValidate={noValidate}>
           {children}
         </form>
       </ValFormContext.Provider>
