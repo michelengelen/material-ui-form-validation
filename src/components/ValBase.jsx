@@ -22,7 +22,7 @@ const htmlValidationTypes = [
 
 class ValBase extends Component {
   static propTypes = {
-    // props that override the Inputs props
+    // props that override the Material-UI Inputs props
     onChange: PropTypes.func.isRequired,
     name: PropTypes.string.isRequired,
     value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -51,6 +51,8 @@ class ValBase extends Component {
     type: 'textfield',
     value: '',
   };
+
+  static contextType = ValFormContext;
 
   constructor(props) {
     super(props);
@@ -279,4 +281,3 @@ class ValBase extends Component {
 }
 
 export default ValBase;
-ValBase.contextType = ValFormContext;

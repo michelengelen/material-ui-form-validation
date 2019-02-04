@@ -19,12 +19,12 @@ import ValBase from './ValBase';
 
 class ValTextField extends ValBase {
   static propTypes = {
-    // props that override the Inputs props
+    // props that override the Material-UI Inputs props
     onChange: PropTypes.func.isRequired,
     name: PropTypes.string.isRequired,
     value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 
-    // custom props for this implementation (these get deleted in getMaterialProps() method)
+    // custom props for this implementation (these get "deleted" in getMaterialProps() method)
     disabled: PropTypes.bool,
     errorMessage: PropTypes.string,
     falseValue: PropTypes.any,
@@ -33,32 +33,36 @@ class ValTextField extends ValBase {
     outlined: PropTypes.bool,
     required: PropTypes.bool,
     trueValue: PropTypes.any,
+    validate: PropTypes.object,
     valueParser: PropTypes.func,
     valueFormatter: PropTypes.func,
-    validate: PropTypes.object,
   };
 
   static defaultProps = {
     value: '',
     trueValue: true,
     falseValue: false,
-    validate: {},
-    valueParser: x => x,
-    valueFormatter: x => x,
     disabled: false,
     errorMessage: '',
     filled: false,
     helperText: '',
     outlined: false,
     required: false,
+    validate: {},
+    valueParser: x => x,
+    valueFormatter: x => x,
   };
+
+  static contextType = ValFormContext;
 
   constructor(props) {
     super(props);
 
+    // value getters
     this.getValue = this.getValue.bind(this);
     this.getViewValue = this.getViewValue.bind(this);
 
+    // check for required prop on the field
     this.isRequired = this.isRequired.bind(this);
 
     // render-methods for sub-components
@@ -78,18 +82,37 @@ class ValTextField extends ValBase {
     if (props.filled && !props.outlined) this.Tag = FilledInput;
   }
 
+  /**
+   * get the unformatted value for this field
+   * @returns {*}
+   */
   getValue() {
-    return this.props.valueParser ? this.props.valueParser(this.value) : this.value;
+    const { valueParser } = this.props;
+    return valueParser ? valueParser(this.value) : this.value;
   }
 
+  /**
+   * get the formatted value for this field
+   * @returns {*}
+   */
   getViewValue() {
-    return this.props.valueFormatter ? this.props.valueFormatter(this.value) : this.value;
+    const { valueFormatter } = this.props;
+    return valueFormatter ? valueFormatter(this.value) : this.value;
   }
 
+  /**
+   * check if the field is required by any chance
+   * @returns {boolean}
+   */
   isRequired() {
-    return this.props.required || !!(this.validations.required && this.validations.required.value);
+    const { required } = this.props;
+    return required || !!(this.validations.required && this.validations.required.value);
   }
 
+  /**
+   * derive material props from the props object
+   * @returns {object}
+   */
   getMaterialProps() {
     const clonedProps = cloneDeep(this.props);
 
@@ -101,6 +124,9 @@ class ValTextField extends ValBase {
     return clonedProps;
   }
 
+  /**
+   * perform actions on the props for rendering it correctly
+   */
   getCustomProps() {
     const {
       id,
@@ -140,6 +166,11 @@ class ValTextField extends ValBase {
     return customProps;
   }
 
+  /**
+   * render the form label for the field
+   * @param   {string}  label
+   * @returns {jsx}
+   */
   renderFormLabel(label) {
     return (
       <InputLabel
@@ -153,10 +184,19 @@ class ValTextField extends ValBase {
     );
   }
 
+  /**
+   * render the formHelperText component for the field
+   * @param   {string}  helperText
+   * @returns {jsx}
+   */
   renderFormHelperText(helperText) {
     return <FormHelperText id={`${this.getAriaHelper()}-helperText`}>{helperText}</FormHelperText>;
   }
 
+  /**
+   * react render function
+   * @returns {jsx}
+   */
   render() {
     const { Tag } = this;
     const materialProps = this.getMaterialProps();
@@ -191,4 +231,3 @@ class ValTextField extends ValBase {
 }
 
 export default ValTextField;
-ValTextField.contextType = ValFormContext;
