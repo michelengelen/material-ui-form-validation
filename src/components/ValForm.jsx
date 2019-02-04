@@ -107,10 +107,10 @@ class ValForm extends Component {
     this._validators = {};
 
     this.state = {
+      _errors: {},
       _badInputs: {},
       _dirtyInputs: {},
       _touchedInputs: {},
-      _errors: {},
       validators,
       registerInput: this.registerInput,
       unregisterInput: this.unregisterInput,
@@ -128,8 +128,6 @@ class ValForm extends Component {
     };
   }
 
-  componentDidMount() {}
-
   /**
    * the wrapper function for handling the forms submit event
    * @param   {object}  e
@@ -141,6 +139,7 @@ class ValForm extends Component {
       disabled, onSubmit, onValidSubmit, onInvalidSubmit,
     } = this.props;
 
+    // if we have a valid event prevent the default action
     if (e && typeof e.preventDefault === 'function') {
       e.preventDefault();
     }
@@ -150,14 +149,13 @@ class ValForm extends Component {
     }
 
     const values = this.getValues();
+
+    // validate all inputs
     const { isValid, errors } = await this.validateAll(values, false);
 
+    // set all inputs to touched state
     this.setTouched(Object.keys(this._inputs), true, false);
     this.updateInputs();
-
-    if (onSubmit && typeof onSubmit === 'function') {
-      onSubmit(e, errors, values);
-    }
 
     if (isValid) {
       onValidSubmit(e, values);
@@ -573,6 +571,7 @@ class ValForm extends Component {
 
   /**
    * validate all registered inputs
+   * gets called from the onSubmit method
    * @param   {object}  context
    * @param   {boolean} update
    * @returns {Promise<{isValid: boolean, errors: Array}>}
@@ -635,6 +634,10 @@ class ValForm extends Component {
     this.updateInputs();
   }
 
+  /**
+   * react render function
+   * @returns {jsx}
+   */
   render() {
     const { state } = this;
     const { noValidate, children } = this.props;
