@@ -136,7 +136,7 @@ class ValForm extends Component {
   async onSubmit(e) {
     const { state } = this;
     const {
-      disabled, onSubmit, onValidSubmit, onInvalidSubmit,
+      disabled, onValidSubmit, onInvalidSubmit,
     } = this.props;
 
     // if we have a valid event prevent the default action
