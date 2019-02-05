@@ -476,7 +476,7 @@ class ValForm extends Component {
           resolve(key);
         }
       });
-      reject('input is not registered');
+      reject(input.props.name);
     });
   }
 
@@ -501,6 +501,10 @@ class ValForm extends Component {
     this.isInputRegistered(input)
       .then((oldName) => {
         this.unregisterInput({ props: { name: oldName } });
+      })
+      .catch((newName) => {
+        // eslint-disable-next-line no-console
+        console.log(`input with the name "${newName}" is not registered at the moment`);
       })
       .finally(() => {
         this._inputs[name] = input;

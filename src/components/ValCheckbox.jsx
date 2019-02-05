@@ -17,27 +17,11 @@ import OutlinedInput from '@material-ui/core/OutlinedInput';
 import ValFormContext from 'context/ValFormContext';
 import ValBase from './ValBase';
 
-const valDefaultProps = {
-  value: '',
-  trueValue: true,
-  falseValue: false,
-  disabled: false,
-  errorMessage: '',
-  filled: false,
-  helperText: '',
-  outlined: false,
-  required: false,
-  validate: {},
-  valueParser: x => x,
-  valueFormatter: x => x,
-};
-
-class ValTextField extends ValBase {
+class ValCheckbox extends ValBase {
   static propTypes = {
     // props that override the Material-UI Inputs props
     onChange: PropTypes.func.isRequired,
     name: PropTypes.string.isRequired,
-    fullWidth: PropTypes.bool,
     value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 
     // custom props for this implementation (these get "deleted" in getMaterialProps() method)
@@ -55,8 +39,18 @@ class ValTextField extends ValBase {
   };
 
   static defaultProps = {
-    ...valDefaultProps,
-    fullWidth: false,
+    value: '',
+    trueValue: true,
+    falseValue: false,
+    disabled: false,
+    errorMessage: '',
+    filled: false,
+    helperText: '',
+    outlined: false,
+    required: false,
+    validate: {},
+    valueParser: x => x,
+    valueFormatter: x => x,
   };
 
   static contextType = ValFormContext;
@@ -123,7 +117,7 @@ class ValTextField extends ValBase {
     const clonedProps = cloneDeep(this.props);
 
     // delete all props that should not be spread down to the underlying Material UI component
-    Object.keys(valDefaultProps).forEach((key) => {
+    Object.keys(ValCheckbox.defaultProps).forEach((key) => {
       delete clonedProps[key];
     });
 
@@ -220,13 +214,7 @@ class ValTextField extends ValBase {
     const value = this.getViewValue();
 
     return (
-      <FormControl
-        disabled={disabled}
-        error={error}
-        required={required}
-        variant={variant}
-        fullWidth={materialProps.fullWidth}
-      >
+      <FormControl disabled={disabled} error={error} required={required} variant={variant}>
         {label && this.renderFormLabel(label)}
         <Tag
           {...materialProps}
@@ -242,4 +230,4 @@ class ValTextField extends ValBase {
   }
 }
 
-export default ValTextField;
+export default ValCheckbox;

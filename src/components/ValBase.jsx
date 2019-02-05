@@ -25,12 +25,20 @@ class ValBase extends Component {
     // props that override the Material-UI Inputs props
     onChange: PropTypes.func.isRequired,
     name: PropTypes.string.isRequired,
-    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    value: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.bool,
+      PropTypes.number,
+    ]),
 
     // custom props for this implementation (these get deleted in getMaterialProps() method)
     checked: PropTypes.bool,
     defaultChecked: PropTypes.bool,
-    defaultValue: PropTypes.oneOfType([PropTypes.string, PropTypes.bool, PropTypes.number]),
+    defaultValue: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.bool,
+      PropTypes.number,
+    ]),
     falseValue: PropTypes.any,
     id: PropTypes.string,
     multiple: PropTypes.bool,
@@ -89,9 +97,11 @@ class ValBase extends Component {
     const {
       checked, name, multiple, value,
     } = this.props;
+
     if (nextProps.name !== name) {
       context.unregisterInput(this);
     }
+
     if (nextProps.type === 'checkbox') {
       if (nextProps.checked !== checked) {
         if (nextProps.checked) {
@@ -104,6 +114,7 @@ class ValBase extends Component {
       if (nextProps.multiple !== multiple) {
         this.value = nextProps.multiple ? [] : '';
       }
+
       if (nextProps.value !== value) {
         this.value = nextProps.value;
       }
