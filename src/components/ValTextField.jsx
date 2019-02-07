@@ -15,7 +15,7 @@ import OutlinedInput from '@material-ui/core/OutlinedInput';
 
 // import the ValFormContext for registering and validation
 import ValFormContext from 'context/ValFormContext';
-import ValBase from './ValBase';
+import ValBaseInput from './ValBaseInput';
 
 const valDefaultProps = {
   value: '',
@@ -32,7 +32,7 @@ const valDefaultProps = {
   valueFormatter: x => x,
 };
 
-class ValTextField extends ValBase {
+class ValTextField extends ValBaseInput {
   static propTypes = {
     // props that override the Material-UI Inputs props
     onChange: PropTypes.func.isRequired,

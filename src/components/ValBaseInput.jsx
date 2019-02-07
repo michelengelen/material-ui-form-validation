@@ -20,7 +20,7 @@ const htmlValidationTypes = [
   /* 'range', 'month', 'week', 'time' */ // These do not currently have validation
 ];
 
-class ValBase extends Component {
+class ValBaseInput extends Component {
   static propTypes = {
     // props that override the Material-UI Inputs props
     onChange: PropTypes.func.isRequired,
@@ -136,7 +136,7 @@ class ValBase extends Component {
 
   /**
    * get the string required for the formHelperText reference
-   * @returns {ValBase.props.id | string}
+   * @returns {ValBaseInput.props.id | string}
    */
   getAriaHelper() {
     const { id, name } = this.props;
@@ -213,7 +213,7 @@ class ValBase extends Component {
 
   /**
    * check if the field is required
-   * @returns {ValBase.props.required | boolean}
+   * @returns {ValBaseInput.props.required | boolean}
    */
   isRequired() {
     const { required } = this.props;
@@ -297,4 +297,4 @@ class ValBase extends Component {
   }
 }
 
-export default ValBase;
+export default ValBaseInput;

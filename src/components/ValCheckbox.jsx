@@ -14,7 +14,7 @@ import IndeterminateCheckbox from '@material-ui/icons/IndeterminateCheckBox';
 
 // import the ValFormContext for registering and validation
 import ValFormContext from 'context/ValFormContext';
-import ValBase from './ValBase';
+import ValBaseInput from './ValBaseInput';
 
 const valDefaultProps = {
   helperText: '',
@@ -29,7 +29,7 @@ const valDefaultProps = {
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.bool, PropTypes.number]),
 };
 
-class ValCheckbox extends ValBase {
+class ValCheckbox extends ValBaseInput {
   static propTypes = {
     // props that override the Material-UI Inputs props
     onChange: PropTypes.func.isRequired,
@@ -120,7 +120,7 @@ class ValCheckbox extends ValBase {
 
   /**
    * derive material props from the props object
-   * @returns {object}
+   * @returns {object} clonedProps
    */
   getControlProps() {
     const clonedProps = cloneDeep(this.props);
@@ -135,24 +135,19 @@ class ValCheckbox extends ValBase {
 
   /**
    * perform actions on the props for rendering it correctly
+   * @returns {object} customProps
    */
   getCustomProps() {
     const {
       id,
       name,
-      required,
       fontSize,
-      helperText,
-      errorMessage,
     } = this.props;
 
     const customProps = {};
 
-    customProps.required = required || this.isRequired(name);
-    customProps.error = !!this.context.submitted && this.context.hasError(name);
-
-    const errorText = customProps.error && this.context.getError(name, errorMessage);
-    customProps.helperText = errorText || helperText || null;
+    customProps.required = this.isRequired(name);
+    customProps.hasError = !!this.context.submitted && this.context.hasError(name);
 
     customProps.fontSize = fontSize;
 
@@ -164,28 +159,28 @@ class ValCheckbox extends ValBase {
 
   /**
    * render the control
-   * @returns {*}
+   * @returns {jsx}
    */
   renderControl() {
     const { Tag } = this;
     const {
       icon, checkedIcon, indeterminate, indeterminateIcon, ...controlProps
     } = this.getControlProps();
-    const { fontSize, helperText, ...customProps } = this.getCustomProps();
+    const {
+      fontSize, hasError, ...customProps
+    } = this.getCustomProps();
 
     if (indeterminate) {
       const CustomIndeterminateIcon = indeterminateIcon;
       return (
-        <div>
-          <Tag
-            {...controlProps}
-            checked={this.isChecked()}
-            indeterminate
-            indeterminateIcon={<CustomIndeterminateIcon fontSize={fontSize} />}
-            {...customProps}
-          />
-          {helperText && this.renderFormHelperText()}
-        </div>
+        <Tag
+          {...controlProps}
+          checked={this.isChecked()}
+          indeterminate
+          indeterminateIcon={<CustomIndeterminateIcon fontSize={fontSize} />}
+          {...customProps}
+          error={hasError.toString()}
+        />
       );
     }
 
@@ -200,6 +195,7 @@ class ValCheckbox extends ValBase {
         icon={<CustomIcon fontSize={fontSize} />}
         checkedIcon={<CustomCheckedIcon fontSize={fontSize} />}
         {...customProps}
+        error={hasError.toString()}
       />
     );
   }
@@ -210,10 +206,10 @@ class ValCheckbox extends ValBase {
    */
   render() {
     const {
-      name, disabled, label, labelPlacement, required,
+      name, disabled, label, labelPlacement,
     } = this.props;
 
-    const isRequired = required || this.isRequired(name);
+    const isRequired = this.isRequired(name);
 
     if (label || isRequired) {
       const labelText = `${label}${isRequired && ' *'}`;

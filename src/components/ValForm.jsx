@@ -553,10 +553,13 @@ class ValForm extends Component {
     if (typeof validate === 'function') {
       result = await validate(value, context, input);
     } else if (typeof validate === 'object') {
+      if (inputName === 'checkbox2') console.log('### here: ', this._validators[inputName]);
       result = await this._validators[inputName](value, context);
     } else {
       result = true;
     }
+
+    if (inputName === 'checkbox2') console.log('### result: ', result);
 
     if (result !== true) {
       isValid = false;
