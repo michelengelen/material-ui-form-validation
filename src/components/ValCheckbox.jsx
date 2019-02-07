@@ -17,6 +17,8 @@ import ValFormContext from 'context/ValFormContext';
 import ValBase from './ValBase';
 
 const valDefaultProps = {
+  helperText: '',
+  errorMessage: '',
   iconSize: 'default', // can be 'default', 'small' and 'large'
   falseValue: false,
   trueValue: true,
@@ -50,6 +52,8 @@ class ValCheckbox extends ValBase {
     ]),
 
     // custom props for this implementation (these get "deleted" in getFormControlProps() method)
+    helperText: PropTypes.string,
+    errorMessage: PropTypes.string,
     iconSize: PropTypes.string,
     falseValue: PropTypes.any,
     trueValue: PropTypes.any,
@@ -105,6 +109,10 @@ class ValCheckbox extends ValBase {
     return required || !!(this.validations.required && this.validations.required.value);
   }
 
+  /**
+   * check if the checkbox is checked or not
+   * @returns {boolean}
+   */
   isChecked() {
     const { trueValue } = this.props;
     return isEqual(this.value, trueValue);
@@ -134,12 +142,17 @@ class ValCheckbox extends ValBase {
       name,
       required,
       fontSize,
+      helperText,
+      errorMessage,
     } = this.props;
 
     const customProps = {};
 
     customProps.required = required || this.isRequired(name);
-    customProps.error = !!this.context.submitted && this.context.hasError(name) ? 'Custom ERROR' : undefined;
+    customProps.error = !!this.context.submitted && this.context.hasError(name);
+
+    const errorText = customProps.error && this.context.getError(name, errorMessage);
+    customProps.helperText = errorText || helperText || null;
 
     customProps.fontSize = fontSize;
 
@@ -158,18 +171,21 @@ class ValCheckbox extends ValBase {
     const {
       icon, checkedIcon, indeterminate, indeterminateIcon, ...controlProps
     } = this.getControlProps();
-    const { fontSize, ...customProps } = this.getCustomProps();
+    const { fontSize, helperText, ...customProps } = this.getCustomProps();
 
     if (indeterminate) {
       const CustomIndeterminateIcon = indeterminateIcon;
       return (
-        <Tag
-          {...controlProps}
-          checked={this.isChecked()}
-          indeterminate
-          indeterminateIcon={<CustomIndeterminateIcon fontSize={fontSize} />}
-          {...customProps}
-        />
+        <div>
+          <Tag
+            {...controlProps}
+            checked={this.isChecked()}
+            indeterminate
+            indeterminateIcon={<CustomIndeterminateIcon fontSize={fontSize} />}
+            {...customProps}
+          />
+          {helperText && this.renderFormHelperText()}
+        </div>
       );
     }
 
@@ -193,13 +209,19 @@ class ValCheckbox extends ValBase {
    * @returns {jsx}
    */
   render() {
-    const { disabled, label, labelPlacement } = this.props;
+    const {
+      name, disabled, label, labelPlacement, required,
+    } = this.props;
 
-    if (label) {
+    const isRequired = required || this.isRequired(name);
+
+    if (label || isRequired) {
+      const labelText = `${label}${isRequired && ' *'}`;
+
       return (
         <FormControlLabel
           control={this.renderControl()}
-          label={label || ''}
+          label={labelText}
           labelPlacement={labelPlacement}
           disabled={disabled}
         />

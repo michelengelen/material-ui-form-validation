@@ -76,12 +76,16 @@ class ValBase extends Component {
 
     this.validations = {};
     this.value = props.multiple ? [] : '';
+
+    this.updateValidations();
   }
 
   componentDidMount() {
+    const { context } = this;
     const { value } = this.props;
+
     this.value = value || this.getDefaultValue();
-    this.updateValidations();
+    if (context) context.registerInput(this);
   }
 
   componentWillReceiveProps(nextProps, nextContext) {
@@ -250,7 +254,7 @@ class ValBase extends Component {
   validate() {
     const { context } = this;
     const { name } = this.props;
-    context.validate(name);
+    if (context) context.validate(name);
   }
 
   /**

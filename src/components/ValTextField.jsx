@@ -107,15 +107,6 @@ class ValTextField extends ValBase {
   }
 
   /**
-   * check if the field is required by any chance
-   * @returns {boolean}
-   */
-  isRequired() {
-    const { required } = this.props;
-    return required || !!(this.validations.required && this.validations.required.value);
-  }
-
-  /**
    * derive material props from the props object
    * @returns {object}
    */
@@ -149,12 +140,12 @@ class ValTextField extends ValBase {
 
     const customProps = {};
 
-    customProps.disabled = disabled;
+    customProps.isDisabled = disabled;
     customProps.readOnly = readOnly;
-    customProps.required = required || this.isRequired(name);
-    customProps.error = !!this.context.submitted && this.context.hasError(name);
+    customProps.isRequired = required || this.isRequired(name);
+    customProps.hasError = !!this.context.submitted && this.context.hasError(name);
 
-    const errorText = customProps.error && this.context.getError(name, errorMessage);
+    const errorText = customProps.hasError && this.context.getError(name, errorMessage);
     customProps.helperText = errorText || helperText || null;
 
     customProps.ariaHelper = `input_${name}`;
@@ -207,13 +198,13 @@ class ValTextField extends ValBase {
     const { Tag } = this;
     const materialProps = this.getMaterialProps();
     const {
-      error,
+      hasError,
       label,
       variant,
       ariaHelper,
       helperText,
-      disabled,
-      required,
+      isDisabled,
+      isRequired,
       ...other
     } = this.getCustomProps();
 
@@ -221,9 +212,9 @@ class ValTextField extends ValBase {
 
     return (
       <FormControl
-        disabled={disabled}
-        error={error}
-        required={required}
+        disabled={isDisabled}
+        error={hasError}
+        required={isRequired}
         variant={variant}
         fullWidth={materialProps.fullWidth}
       >

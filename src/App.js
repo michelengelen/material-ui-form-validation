@@ -148,6 +148,12 @@ class App extends Component {
                     labelPlacement="end"
                     trueValue="TRUEVALUE"
                     falseValue="FALSEVALUE"
+                    validate={{
+                      required: {
+                        value: true,
+                        errorMessage: 'checkbox 1 error'
+                      }
+                    }}
                   />
                   <Divider style={{ marginTop: 20, marginBottom: 20 }} />
                   <ValCheckBox
