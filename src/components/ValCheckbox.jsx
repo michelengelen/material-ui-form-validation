@@ -1,56 +1,75 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 
 // import lodash helpers
 import cloneDeep from 'lodash.clonedeep';
+import isEqual from 'lodash.isequal';
 
 // import Material UI component
-import FilledInput from '@material-ui/core/FilledInput';
-import FormControl from '@material-ui/core/FormControl';
-import FormHelperText from '@material-ui/core/FormHelperText';
-import Input from '@material-ui/core/Input';
-import InputLabel from '@material-ui/core/InputLabel';
-import OutlinedInput from '@material-ui/core/OutlinedInput';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import Checkbox from '@material-ui/core/Checkbox';
+import CheckBoxOutlineBlankIcon from '@material-ui/icons/CheckBoxOutlineBlank';
+import CheckBoxIcon from '@material-ui/icons/CheckBox';
+import IndeterminateCheckbox from '@material-ui/icons/IndeterminateCheckBox';
 
 // import the ValFormContext for registering and validation
 import ValFormContext from 'context/ValFormContext';
 import ValBase from './ValBase';
+
+const valDefaultProps = {
+  iconSize: 'default', // can be 'default', 'small' and 'large'
+  falseValue: false,
+  trueValue: true,
+  label: '',
+  labelPlacement: 'end',
+  required: false,
+  validate: {},
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.bool, PropTypes.number]),
+};
 
 class ValCheckbox extends ValBase {
   static propTypes = {
     // props that override the Material-UI Inputs props
     onChange: PropTypes.func.isRequired,
     name: PropTypes.string.isRequired,
-    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-
-    // custom props for this implementation (these get "deleted" in getMaterialProps() method)
+    id: PropTypes.string.isRequired,
     disabled: PropTypes.bool,
-    errorMessage: PropTypes.string,
+    disableRipple: PropTypes.bool,
+    icon: PropTypes.oneOfType([
+      PropTypes.node,
+      PropTypes.func,
+    ]),
+    checkedIcon: PropTypes.oneOfType([
+      PropTypes.node,
+      PropTypes.func,
+    ]),
+    indeterminate: PropTypes.bool,
+    indeterminateIcon: PropTypes.oneOfType([
+      PropTypes.node,
+      PropTypes.func,
+    ]),
+
+    // custom props for this implementation (these get "deleted" in getFormControlProps() method)
+    iconSize: PropTypes.string,
     falseValue: PropTypes.any,
-    filled: PropTypes.bool,
-    helperText: PropTypes.string,
-    outlined: PropTypes.bool,
-    required: PropTypes.bool,
     trueValue: PropTypes.any,
+    label: PropTypes.string,
+    labelPlacement: PropTypes.string,
+    required: PropTypes.bool,
     validate: PropTypes.object,
-    valueParser: PropTypes.func,
-    valueFormatter: PropTypes.func,
+    type: PropTypes.string,
   };
 
   static defaultProps = {
-    value: '',
-    trueValue: true,
-    falseValue: false,
+    ...valDefaultProps,
     disabled: false,
-    errorMessage: '',
-    filled: false,
-    helperText: '',
-    outlined: false,
-    required: false,
-    validate: {},
-    valueParser: x => x,
-    valueFormatter: x => x,
+    value: '',
+    disableRipple: false,
+    indeterminate: false,
+    icon: CheckBoxOutlineBlankIcon,
+    checkedIcon: CheckBoxIcon,
+    indeterminateIcon: IndeterminateCheckbox,
+    type: 'checkbox',
   };
 
   static contextType = ValFormContext;
@@ -58,28 +77,14 @@ class ValCheckbox extends ValBase {
   constructor(props) {
     super(props);
 
-    // value getters
-    this.getValue = this.getValue.bind(this);
-    this.getViewValue = this.getViewValue.bind(this);
-
     // check for required prop on the field
     this.isRequired = this.isRequired.bind(this);
 
-    // render-methods for sub-components
-    this.renderFormLabel = this.renderFormLabel.bind(this);
-    this.renderFormHelperText = this.renderFormHelperText.bind(this);
-
     // get refined props
-    this.getMaterialProps = this.getMaterialProps.bind(this);
+    this.getControlProps = this.getControlProps.bind(this);
     this.getCustomProps = this.getCustomProps.bind(this);
 
-    this.Tag = Input;
-    this.labelRef = null;
-
-    if (props.filled && props.outlined) throw new Error(`Component ${props.name} can either be outlined or filled, not both`);
-
-    if (props.outlined && !props.filled) this.Tag = OutlinedInput;
-    if (props.filled && !props.outlined) this.Tag = FilledInput;
+    this.Tag = Checkbox;
   }
 
   /**
@@ -87,17 +92,8 @@ class ValCheckbox extends ValBase {
    * @returns {*}
    */
   getValue() {
-    const { valueParser } = this.props;
-    return valueParser ? valueParser(this.value) : this.value;
-  }
-
-  /**
-   * get the formatted value for this field
-   * @returns {*}
-   */
-  getViewValue() {
-    const { valueFormatter } = this.props;
-    return valueFormatter ? valueFormatter(this.value) : this.value;
+    const { value } = this;
+    return value;
   }
 
   /**
@@ -109,15 +105,20 @@ class ValCheckbox extends ValBase {
     return required || !!(this.validations.required && this.validations.required.value);
   }
 
+  isChecked() {
+    const { trueValue } = this.props;
+    return isEqual(this.value, trueValue);
+  }
+
   /**
    * derive material props from the props object
    * @returns {object}
    */
-  getMaterialProps() {
+  getControlProps() {
     const clonedProps = cloneDeep(this.props);
 
-    // delete all props that should not be spread down to the underlying Material UI component
-    Object.keys(ValCheckbox.defaultProps).forEach((key) => {
+    // delete all props that should not be spread down to the underlying Material-UI component
+    Object.keys(valDefaultProps).forEach((key) => {
       delete clonedProps[key];
     });
 
@@ -131,66 +132,60 @@ class ValCheckbox extends ValBase {
     const {
       id,
       name,
-      helperText,
-      label,
-      outlined,
-      filled,
       required,
-      errorMessage,
-      disabled,
-      readOnly,
+      fontSize,
     } = this.props;
 
     const customProps = {};
 
-    customProps.disabled = disabled;
-    customProps.readOnly = readOnly;
     customProps.required = required || this.isRequired(name);
-    customProps.error = !!this.context.submitted && this.context.hasError(name);
+    customProps.error = !!this.context.submitted && this.context.hasError(name) ? 'Custom ERROR' : undefined;
 
-    const errorText = customProps.error && this.context.getError(name, errorMessage);
-    customProps.helperText = errorText || helperText || null;
+    customProps.fontSize = fontSize;
 
-    customProps.ariaHelper = `input_${name}`;
-
-    customProps.id = id || customProps.ariaHelper;
-    customProps.label = label;
-
-    if (outlined) {
-      customProps.variant = 'outlined';
-      customProps.labelWidth = this.labelRef ? this.labelRef.offsetWidth : 0;
-    } else if (filled) {
-      customProps.variant = 'filled';
-    }
+    const ariaHelper = `checkBox_${name}`;
+    customProps.id = id || ariaHelper;
 
     return customProps;
   }
 
   /**
-   * render the form label for the field
-   * @param   {string}  label
-   * @returns {jsx}
+   * render the control
+   * @returns {*}
    */
-  renderFormLabel(label) {
-    return (
-      <InputLabel
-        htmlFor={this.getAriaHelper()}
-        ref={(ref) => {
-          this.labelRef = ReactDOM.findDOMNode(ref);
-        }}
-      >
-        {label}
-      </InputLabel>
-    );
-  }
+  renderControl() {
+    const { Tag } = this;
+    const {
+      icon, checkedIcon, indeterminate, indeterminateIcon, ...controlProps
+    } = this.getControlProps();
+    const { fontSize, ...customProps } = this.getCustomProps();
 
-  /**
-   * render the formHelperText component for the field
-   * @param   {string}  helperText
-   * @returns {jsx}
-   */
-  renderFormHelperText(helperText) {
-    return <FormHelperText id={`${this.getAriaHelper()}-helperText`}>{helperText}</FormHelperText>;
+    if (indeterminate) {
+      const CustomIndeterminateIcon = indeterminateIcon;
+      return (
+        <Tag
+          {...controlProps}
+          checked={this.isChecked()}
+          indeterminate
+          indeterminateIcon={<CustomIndeterminateIcon fontSize={fontSize} />}
+          {...customProps}
+        />
+      );
+    }
+
+    const CustomIcon = icon;
+    const CustomCheckedIcon = checkedIcon;
+
+    return (
+      <Tag
+        {...controlProps}
+        checked={this.isChecked()}
+        onChange={e => this.handleOnChange(e)}
+        icon={<CustomIcon fontSize={fontSize} />}
+        checkedIcon={<CustomCheckedIcon fontSize={fontSize} />}
+        {...customProps}
+      />
+    );
   }
 
   /**
@@ -198,35 +193,20 @@ class ValCheckbox extends ValBase {
    * @returns {jsx}
    */
   render() {
-    const { Tag } = this;
-    const materialProps = this.getMaterialProps();
-    const {
-      error,
-      label,
-      variant,
-      ariaHelper,
-      helperText,
-      disabled,
-      required,
-      ...other
-    } = this.getCustomProps();
+    const { disabled, label, labelPlacement } = this.props;
 
-    const value = this.getViewValue();
-
-    return (
-      <FormControl disabled={disabled} error={error} required={required} variant={variant}>
-        {label && this.renderFormLabel(label)}
-        <Tag
-          {...materialProps}
-          value={value || ''}
-          {...other}
-          aria-describedby={`${ariaHelper}-helperText`}
-          onChange={e => this.handleOnChange(e)}
-          onBlur={e => this.handleOnBlur(e)}
+    if (label) {
+      return (
+        <FormControlLabel
+          control={this.renderControl()}
+          label={label || ''}
+          labelPlacement={labelPlacement}
+          disabled={disabled}
         />
-        {helperText && this.renderFormHelperText(helperText)}
-      </FormControl>
-    );
+      );
+    }
+
+    return this.renderControl();
   }
 }
 

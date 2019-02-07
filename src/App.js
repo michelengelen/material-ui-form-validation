@@ -6,6 +6,7 @@ import Divider from '@material-ui/core/Divider';
 import { withStyles } from '@material-ui/core/styles';
 import ValForm from 'components/ValForm';
 import ValTextField from 'components/ValTextField';
+import ValCheckBox from 'components/ValCheckbox';
 
 const styles = theme => ({
   root: {
@@ -32,18 +33,27 @@ class App extends Component {
       test1: '',
       test2: '',
       test3: '',
+      checkbox1: false,
+      checkbox2: false,
     };
   }
 
-  handleChange = name => event => {
+  handleChange = name => (event, value) => {
+    console.log('#### event - onChange: ', value)
     this.setState({
-      [name]: event.target.value,
+      [name]: value,
     });
+  };
+
+  handleCheckbox = name => event => {
+    console.log(`### ${name}: `, event);
   };
 
   render() {
     const { state } = this;
     const { classes } = this.props;
+
+    console.log('##### state: ', state);
 
     return (
       <Grid container className={classes.root}>
@@ -120,7 +130,38 @@ class App extends Component {
               </Paper>
             </Grid>
             <Grid item xs={3}>
-              <Paper className={classes.paper}>CheckBox Test</Paper>
+              <Paper className={classes.paper}>
+                <ValForm
+                  onValidSubmit={() => {
+                    console.log('##### VALID SUBMIT');
+                  }}
+                  onInvalidSubmit={() => {
+                    console.log('##### INVALID SUBMIT');
+                  }}
+                >
+                  <ValCheckBox
+                    value={state.checkbox1}
+                    onChange={this.handleChange('checkbox1')}
+                    name={'checkbox1'}
+                    id={'checkbox1'}
+                    label="Testlabel Checkbox 1"
+                    labelPlacement="end"
+                    trueValue="TRUEVALUE"
+                    falseValue="FALSEVALUE"
+                  />
+                  <Divider style={{ marginTop: 20, marginBottom: 20 }} />
+                  <ValCheckBox
+                    value={state.checkbox2}
+                    onChange={this.handleChange('checkbox2')}
+                    name={'checkbox2'}
+                    id={'checkbox2'}
+                    trueValue="TRUEVALUE 2"
+                    falseValue="FALSEVALUE 2"
+                  />
+                  <Divider style={{ marginTop: 20, marginBottom: 20 }} />
+                  <button type="submit">test submit</button>
+                </ValForm>
+              </Paper>
             </Grid>
             <Grid item xs={3}>
               <Paper className={classes.paper}>RadioButton Test</Paper>

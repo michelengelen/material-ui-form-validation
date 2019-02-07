@@ -25,20 +25,12 @@ class ValBase extends Component {
     // props that override the Material-UI Inputs props
     onChange: PropTypes.func.isRequired,
     name: PropTypes.string.isRequired,
-    value: PropTypes.oneOfType([
-      PropTypes.string,
-      PropTypes.bool,
-      PropTypes.number,
-    ]),
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.bool, PropTypes.number]),
 
     // custom props for this implementation (these get deleted in getMaterialProps() method)
     checked: PropTypes.bool,
     defaultChecked: PropTypes.bool,
-    defaultValue: PropTypes.oneOfType([
-      PropTypes.string,
-      PropTypes.bool,
-      PropTypes.number,
-    ]),
+    defaultValue: PropTypes.oneOfType([PropTypes.string, PropTypes.bool, PropTypes.number]),
     falseValue: PropTypes.any,
     id: PropTypes.string,
     multiple: PropTypes.bool,
@@ -207,7 +199,12 @@ class ValBase extends Component {
       }
       return ret;
     }
-    return event && event.target && !isUndefined(event.target.value) ? event.target.value : event;
+    if (event && event.target && !isUndefined(event.target.value)) {
+      return event.target.value;
+    }
+
+    event.persist();
+    return event;
   }
 
   /**
@@ -264,7 +261,12 @@ class ValBase extends Component {
     const { context } = this;
     const { onChange, name } = this.props;
 
-    if (e && e.preventDefault && typeof e.preventDefault === 'function') {
+    if (
+      e.target.type !== 'checkbox'
+      && e
+      && e.preventDefault
+      && typeof e.preventDefault === 'function'
+    ) {
       e.preventDefault();
     }
 
@@ -273,7 +275,7 @@ class ValBase extends Component {
     if (!context.isDirty(name)) context.setDirty(name);
     if (!context.isTouched(name)) context.setTouched(name);
     if (context.submitted) this.validate();
-    onChange(e);
+    onChange(e, this.value);
   }
 
   /**
